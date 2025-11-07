@@ -480,7 +480,7 @@ const Dashboard = () => {
 
         {/* Scroll indicator */}
         <div className="text-center pb-20 md:pb-8">
-          <p className="text-[1.35rem] leading-[1.8rem] text-subtext mb-2">Voir d’autres Stations</p>
+          <p className="text-[1.35rem] leading-[1.8rem] text-subtext mb-2">Voir d’autres stations</p>
           <div className="animate-bounce">
             <ChevronRight size={20} className="rotate-90 mx-auto text-subtext" />
           </div>
