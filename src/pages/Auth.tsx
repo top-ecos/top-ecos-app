@@ -334,7 +334,7 @@ const Auth = () => {
         {/* Header */}
         <div className="text-center mb-4">
           {/* Place Topecos logo at top-left corner */}
-          <div className="absolute top-0 left-4">
+          <div className="absolute -top-4 sm:-top-5 lg:-top-6 left-4">
             <img
               src="/topecos-nocase.png"
               alt="Topecos logo"
