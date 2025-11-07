@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 320">
+  <!-- Medal "O" ring -->
+  <circle cx="150" cy="140" r="100" fill="none" stroke="#03BB26" stroke-width="36" stroke-linecap="round"/>
+
+  <!-- Star inside -->
+  <path d="M150 82
+           L161 114 H195
+           L167 134 L178 166
+           L150 148 L122 166
+           L133 134 L105 114
+           H139 Z"
+        fill="#03BB26"/>
+
+  <!-- Ribbons -->
+  <polygon points="110,220 110,285 140,305 150,285 150,220" fill="#03BB26"/>
+  <polygon points="150,220 150,285 160,305 190,285 190,220" fill="#03BB26"/>
+</svg>
