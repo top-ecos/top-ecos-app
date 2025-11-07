@@ -232,7 +232,7 @@ const Auth = () => {
       // Save details for later and move to code step
       setPendingAuth({ mode: 'signup', email, password, firstName, lastName, phone: fullPhone });
       setSignupStep('code');
-      setSuccess('Un code à 6 chiffres vient d\'être envoyé.');
+      setSuccess('Un code à 6 chiffres vient d\'être envoyé par sms.');
     } catch (err: any) {
       setError(translateAuthError(err?.message) || 'Impossible d\'envoyer le code');
     } finally {
@@ -342,7 +342,7 @@ const Auth = () => {
             />
           </div>
 
-          <p className="text-black text-xl italic font-bold">
+          <p className="text-black text-xl font-bold">
             {activeTab === 'signin' ? 'Heureux de te voir !' : 'Inscris-toi gratuitement'}
           </p>
           </div>
@@ -364,7 +364,7 @@ const Auth = () => {
                   value="signup"
                   className="data-[state=active]:!text-accent data-[state=active]:!bg-[#03BB25]/30"
                 >
-                  Inscription
+                  Je m'inscris
                 </TabsTrigger>
               </TabsList>
 
