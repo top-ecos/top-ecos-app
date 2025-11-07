@@ -364,7 +364,7 @@ const Auth = () => {
                   value="signup"
                   className="data-[state=active]:!text-accent data-[state=active]:!bg-[#03BB25]/30"
                 >
-                  Je m'inscris
+                  Inscription
                 </TabsTrigger>
               </TabsList>
 
@@ -596,7 +596,7 @@ const Auth = () => {
                     style={{ backgroundColor: '#03BB26' }}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Envoi du code...' : <strong>Inscription</strong>}
+                    {isLoading ? 'Envoi du code...' : <strong>Je m'inscris</strong>}
                   </Button>
                 </form>
                 )}
