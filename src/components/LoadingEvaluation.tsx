@@ -19,7 +19,7 @@ const LoadingEvaluation = () => {
           </h2>
           
           <p className="text-subtext mb-6 leading-relaxed">
-            Analyse de votre performance clinique et de vos compétences de communication en cours.
+            Analyse de ta performance clinique et de tes compétences de communication en cours.
           </p>
           
           <div className="space-y-3">
@@ -39,7 +39,7 @@ const LoadingEvaluation = () => {
           
           <div className="mt-6 p-4 bg-[#4299F6]/30 border border-blue-200 rounded-lg">
             <p className="text-sm text-[#4299F6]">
-              Veuillez patienter, cette opération peut prendre quelques secondes.
+              Patiente un instant, cette opération peut prendre quelques secondes.
             </p>
           </div>
         </CardContent>
