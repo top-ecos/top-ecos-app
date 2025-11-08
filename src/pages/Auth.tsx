@@ -657,7 +657,7 @@ const Auth = () => {
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    conditions d’utilisation et notre politique de confidentialité.
+                    conditions d’utilisation et notre politique de confidentialité
                   </a>{'.'}
                 </div>
               </TabsContent>
