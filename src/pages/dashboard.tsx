@@ -221,7 +221,7 @@ const Dashboard = () => {
   const { sddList } = useSDD();
   const navigate = useNavigate();
 
-  const pageDescription = "Analyse tes performances, tes progres et identifie tes points d'amelioration";
+  const pageDescription = "Analyse tes performances, ta progression et identifie tes axes d'amélioration";
 
   return (
     <Layout>
