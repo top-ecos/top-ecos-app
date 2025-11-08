@@ -132,9 +132,9 @@ const Pricing = () => {
     return (
         <Layout>
             <section id="pricing" className="bg-gray-50/50">
-                <div className="py-24 px-4 max-w-6xl mx-auto">
-                    <div className="flex flex-col text-center w-full mb-16">
-                        <h1 className="font-bold text-3xl lg:text-4xl tracking-tight text-text max-w-2xl mx-auto">
+                <div className="pt-8 pb-20 px-4 max-w-6xl mx-auto">
+                    <div className="flex flex-col text-center w-full mb-8">
+                        <h1 className="font-bold text-2xl lg:text-3xl tracking-tight text-text max-w-2xl mx-auto">
                             Ne perds plus de temps à te demander comment préparer tes ECOS.
                         </h1>
                     </div>
