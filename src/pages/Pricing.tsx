@@ -28,8 +28,8 @@ const pricingTiers: PricingPlan[] = [
         price: '0€',
         subtitle: 'pour découvrir top ECOS.',
         features: [
-            '5 stations évaluées / semaine',
-            '20 stations disponibles',
+            '5 stations jouables / semaine',
+            '15 stations disponibles',
             'Évaluation IA partielle'
         ],
         isPremium: false,
@@ -42,7 +42,7 @@ const pricingTiers: PricingPlan[] = [
         subtitle: 'pour t\'entraîner à ton rythme.',
         features: [
             'Stations en illimité',
-            '+5 nouvelles stations classées / semaine',
+            '+5 nouvelles stations / semaine',
             'Classement hebdomadaire dynamique',
             'Classement par station',
             'Évaluation IA complète',
@@ -59,8 +59,8 @@ const pricingTiers: PricingPlan[] = [
         title: 'Saison ECOS 2026',
         price: '17€',
         priceSuffix: '/ mois*',
-        subtitle: 'pour une préparation complète jusqu\'aux ECOS 2026',
-        footnote: '*paiement unique',
+        subtitle: 'pour une préparation complète\ jusqu'aux ECOS 2026',
+        footnote: '*paiement unique, premium activé jusqu'au 31 mai 2026',
         features: [
             'Stations en illimité',
             '+5 nouvelles stations classées / semaine',
@@ -135,7 +135,7 @@ const Pricing = () => {
                 <div className="pt-8 pb-20 px-4 max-w-6xl mx-auto">
                     <div className="flex flex-col text-center w-full mb-8">
                         <h1 className="font-bold text-2xl lg:text-3xl tracking-tight text-text max-w-2xl mx-auto">
-                            Ne perds plus de temps à te demander comment préparer tes ECOS.
+                            Prends de l'avance : passe à top ECOS Premium. 
                         </h1>
                     </div>
 
