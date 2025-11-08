@@ -657,15 +657,7 @@ const Auth = () => {
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    conditions d’utilisation
-                  </a>{' '}et notre{' '}
-                  <a
-                    href="https://top-ecos.com/legal"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    politique de confidentialité
+                    conditions d’utilisation et notre politique de confidentialité.
                   </a>{'.'}
                 </div>
               </TabsContent>
