@@ -116,7 +116,7 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
         setItems(fallbackMapped);
         setError(null);
       } else {
-        setError(e?.message || 'Erreur lors du chargement des SDD classés.');
+        setError(e?.message || 'Erreur lors du chargement des stations classées.');
         setItems([]);
       }
     } finally {
@@ -133,7 +133,7 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold text-text">Stations classées de la semaine</h2>
-          <p className="text-subtext">Les stations mises en avant cette semaine</p>
+          <p className="text-subtext">Obtiens la meilleure moyenne sur ces 3 stations pour entrer dans le top 10 de la semaine</p>
         </div>
         <Dialog>
           <DialogTrigger asChild>
@@ -149,7 +149,7 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
             <UIDialogHeader>
               <DialogTitle>Comment ça marche ?</DialogTitle>
               <DialogDescription>
-                Les stations classées te permettent de comparer tes performances à celles des autres utilisateurs de top ECOS. Toutes les semaines, 3 nouvelles stations classées sont ajoutées à top ECOS. Fais-toi évaluer par l'IA top ECOS sur ces 5 nouvelles stations et vois comment tu te situes par rapport à tes concurrents. Le classement est réinitialisé toutes les semaines.
+                Les stations classées te permettent de comparer tes performances à celles des autres utilisateurs de top ECOS. Toutes les semaines, 3 nouvelles stations classées sont ajoutées à top ECOS. Fais-toi évaluer par sur ces 3 nouvelles stations et vois comment tu te situes par rapport à tes concurrents. Le classement est réinitialisé toutes les semaines.
               </DialogDescription>
             </UIDialogHeader>
           </DialogContent>
