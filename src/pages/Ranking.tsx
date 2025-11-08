@@ -269,7 +269,7 @@ const Ranking = () => {
                     L'accès au classement est une fonctionnalité premium
                   </h1>
                   <p className="text-subtext">
-                    Passe à Premium pour comparer tes performances, suivre ta progression hebdomadaire et te mesurer aux autres étudiants. Chaque semaine, 5 nouvelles stations classées t’attendent.
+                    Passe à top ECOS Premium pour comparer tes performances à celles des autres étudiants. Chaque semaine, 3 nouvelles stations classées t’attendent parmi les 5 nouvelles ajoutées à la plateforme.
                   </p>
                   <div className="pt-2">
                     <Button
