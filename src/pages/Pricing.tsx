@@ -63,7 +63,7 @@ const pricingTiers: PricingPlan[] = [
         footnote: '*paiement unique, premium activé jusqu\'au 31 mai 2026',
         features: [
             'Stations en illimité',
-            '+5 nouvelles stations classées / semaine',
+            '+5 nouvelles stations / semaine',
             'Classement hebdomadaire dynamique',
             'Classement par station',
             'Évaluation IA complète',
