@@ -59,8 +59,8 @@ const pricingTiers: PricingPlan[] = [
         title: 'Saison ECOS 2026',
         price: '17€',
         priceSuffix: '/ mois*',
-        subtitle: 'pour une préparation complète jusqu'aux ECOS 2026',
-        footnote: '*paiement unique, premium activé jusqu'au 31 mai 2026',
+        subtitle: 'pour une préparation complète jusqu\'aux ECOS 2026',
+        footnote: '*paiement unique, premium activé jusqu\'au 31 mai 2026',
         features: [
             'Stations en illimité',
             '+5 nouvelles stations classées / semaine',
