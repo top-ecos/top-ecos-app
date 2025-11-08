@@ -72,7 +72,7 @@ const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
               ) : message.role === 'user' ? (
                 /* Doctor messages (on the right, green) */
                 <div className="flex items-end space-x-2 max-w-[85%] sm:max-w-lg">
-                  <div className="bg-green-500 text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-br-md shadow-sm">
+                  <div className="bg-[#03BB26] text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-br-md shadow-sm">
                     <p className="text-sm leading-relaxed">{message.content}</p>
                   </div>
                 </div>
