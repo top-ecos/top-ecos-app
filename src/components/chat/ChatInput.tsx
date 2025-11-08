@@ -59,7 +59,7 @@ const ChatInput = ({
             isTimeUp
               ? "Temps écoulé - Impossible de continuer"
               : isPaused
-                ? "Station en pause - Cliquez sur 'Reprendre' pour continuer"
+                ? "Station en pause - Clique sur 'Reprendre' pour continuer"
                 : (placeholderText || "Procède à l’interrogatoire médical (Entrée pour envoyer, Maj + Entrée pour revenir à la ligne)")
           }
           disabled={isDisabled}
@@ -79,7 +79,7 @@ const ChatInput = ({
         <Button 
           onClick={handleSend}
           disabled={buttonDisabled}
-          className="h-[50px] w-[50px] bg-green-500 hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="h-[50px] w-[50px] bg-[#03BB26] hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Send className="h-5 w-5" />
         </Button>
@@ -87,7 +87,7 @@ const ChatInput = ({
       
       {isTimeUp && (
         <div className="mt-2 text-center text-red-600 font-medium">
-          Le temps est écoulé. Veuillez évaluer votre performance ou terminer la station.
+          Le temps est écoulé. C'est le moment d'évaluer ta performance ou de quitter la station.
         </div>
       )}
     </div>
