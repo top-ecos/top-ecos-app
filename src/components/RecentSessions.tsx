@@ -205,7 +205,7 @@ export default function RecentSessions({
             <CardContent className="p-8">
               <EmptyState
                 title="Aucune session réalisée"
-                description="Commence ton entraînement pour voir tes premiers résultats ici"
+                description="Commence ton entraînement pour voir tes premiers résultats"
                 action={
                   emptyAction ?? (
                     <Link to="/cases">
