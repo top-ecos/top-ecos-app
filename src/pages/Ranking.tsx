@@ -266,7 +266,7 @@ const Ranking = () => {
                     <Lock className="h-10 w-10 text-primary" />
                   </div>
                   <h1 className="text-2xl md:text-3xl font-semibold text-text">
-                    L'accès au classement est une fonctionnalité premium
+                    Accès au classement réservé aux abonnés
                   </h1>
                   <p className="text-subtext">
                     Passe à top ECOS Premium pour comparer tes performances à celles des autres étudiants. Chaque semaine, 3 nouvelles stations classées t’attendent parmi les 5 nouvelles ajoutées à la plateforme.
