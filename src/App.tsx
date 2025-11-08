@@ -100,7 +100,7 @@ function App() {
                       <div className="min-h-screen bg-surface-alt flex items-center justify-center">
                         <div className="text-center">
                           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-                          <p className="text-subtext">Chargement des analyses...</p>
+                          <p className="text-subtext">Chargement du dashboard...</p>
                         </div>
                       </div>
                     }>
@@ -170,7 +170,7 @@ function App() {
                       <div className="min-h-screen bg-surface-alt flex items-center justify-center">
                         <div className="text-center">
                           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-                          <p className="text-subtext">Chargement de la simulation...</p>
+                          <p className="text-subtext">Chargement de la station...</p>
                         </div>
                       </div>
                     }>
