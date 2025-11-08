@@ -215,7 +215,7 @@ const Dashboard = () => {
     }
     // PHOENIX: Updated token check logic for free users
     if (!isPremiumEffective && !hasTokens) {
-      toast.error("Vous n'avez plus de sessions gratuites. Passez à Premium pour continuer.");
+      toast.error("Tu n'as plus de sessions gratuites cette semaine. Abonne-toi à top ECOS Premium pour continuer l'entraînement.");
       navigate('/pricing');
       return;
     }
@@ -379,7 +379,7 @@ const Dashboard = () => {
                               Continuez votre entraînement en illimité
                             </h2>
                             <p className="text-subtext mb-8">
-                              Vous avez utilisé toutes vos sessions gratuites de la semaine. Passez à Premium pour débloquer toutes les stations et obtenir des analyses de performance détaillées.
+                              Tu as utilisé toutes tes sessions gratuites de la semaine. Passe à Premium pour débloquer toutes les stations et continuer ton entraînement.
                             </p>
                             <Button
                               variant="primary"
@@ -466,7 +466,7 @@ const Dashboard = () => {
                            <EmptyState
                              icon={<BookOpen size={24} />}
                              title="Aucune station à recommander"
-                             description="Consultez la bibliothèque pour trouver une station."
+                             description="Consulte la bibliothèque pour trouver une station."
                            />
                         )}
                       </CardContent>
