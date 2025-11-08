@@ -327,7 +327,7 @@ const Profil = () => {
                 className="text-xs text-accent hover:underline disabled:opacity-50"
                 disabled={isUpdatingEmoji}
               >
-                {showEmojiPicker ? 'Fermer' : (displayEmoji ? 'Changer' : 'Ajouter une emoji')}
+                {showEmojiPicker ? 'Fermer' : (displayEmoji ? 'Changer' : 'Ajouter un emoji')}
               </button>
             </div>
           </div>
@@ -335,14 +335,14 @@ const Profil = () => {
           {showEmojiPicker && (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-gray-600">Choisis une emoji pour ton avatar.</p>
+                <p className="text-sm text-gray-600">Choisis un emoji pour ton avatar.</p>
                 <button
                   type="button"
                   className="text-xs text-gray-500 hover:text-gray-700"
                   onClick={() => handleSelectEmoji('')}
                   disabled={isUpdatingEmoji}
                 >
-                  {displayEmoji ? 'Retirer l\'emoji' : 'Aucune emoji'}
+                  {displayEmoji ? 'Retirer l\'emoji' : 'Aucun emoji'}
                 </button>
               </div>
               <div className="grid grid-cols-9 gap-2">
@@ -531,7 +531,7 @@ const Profil = () => {
                           <Zap size={14} className="mr-1" />
                           Premium
                         </span>
-                        Manager mon abonnement
+                        Gérer mon abonnement
                       </>
                     )}
                   </button>
@@ -555,7 +555,6 @@ const Profil = () => {
                     onClick={() => navigate('/pricing')}
                     className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-full text-white bg-accent hover:bg-[#03BB26]/85"
                   >
-                    <span className="inline-flex items-center bg-white/20 text-white text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">
                     Je m’abonne à top ECOS Premium
                   </button>
                 </div>
