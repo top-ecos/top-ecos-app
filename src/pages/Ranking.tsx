@@ -278,7 +278,7 @@ const Ranking = () => {
                       className="w-full md:w-auto md:px-6 md:min-w-[260px] text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-[var(--accent)]"
                       onClick={() => navigate('/pricing')}
                     >
-                      Découvrir l'offre Premium
+                      Découvrir top ECOS Premium
                     </Button>
                   </div>
                 </CardContent>
