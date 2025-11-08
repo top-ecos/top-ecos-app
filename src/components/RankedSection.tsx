@@ -133,7 +133,7 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
       <div className="flex items-center justify-between">
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold text-text">Stations classées de la semaine</h2>
-          <p className="text-subtext">Obtiens la meilleure moyenne sur ces 3 stations pour entrer dans le top 10 de la semaine</p>
+          <p className="text-subtext">Obtiens la meilleure moyenne sur ces 3 stations pour concourir au top 10 hebdomadaire</p>
         </div>
         <Dialog>
           <DialogTrigger asChild>
