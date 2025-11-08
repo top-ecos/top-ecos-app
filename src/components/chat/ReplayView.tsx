@@ -132,7 +132,7 @@ const ReplayView = ({
                 <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`max-w-3xl px-4 py-3 rounded-xl ${
                     message.role === 'user' 
-                      ? 'bg-blue-600 text-white shadow-md' 
+                      ? 'bg-[#4299F6] text-white shadow-md' 
                       : 'bg-gray-100 border border-gray-200 shadow-sm'
                   }`}>
                     <div className="flex items-start space-x-3">
@@ -141,7 +141,7 @@ const ReplayView = ({
                       )}
                       <div>
                         <p className="text-xs font-semibold mb-1 opacity-80">
-                          {message.role === 'user' ? 'Étudiant' : 'Patient'}
+                          {message.role === 'user' ? 'Toi' : 'PS / PSS'}
                         </p>
                         <p className="leading-relaxed">{message.content}</p>
                       </div>
