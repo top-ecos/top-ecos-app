@@ -96,22 +96,10 @@ export const ActionsList = ({ actions_reussies, actions_manquees }: ActionsListP
                     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/50 p-6 text-center backdrop-blur-sm">
                        <LockIcon className="h-10 w-10 text-slate-700" />
                        <h3 className="mt-4 text-2xl font-bold text-slate-800">
-                         Débloquez les {remainingActionsCount} autres points d'amélioration
+                         Avec top ECOS Premium, découvre les {remainingActionsCount} actions manquées de cette station et identifie précisément tes points d'amélioration.
                        </h3>
-                       {/* --- RE-INSERTED BULLET POINTS --- */}
-                       <div className="my-4 max-w-sm text-left text-slate-600">
-                         <p className="flex items-start">
-                           <span className="mr-2 mt-1 text-green-500">✓</span>
-                           <span>Obtenez un feedback détaillé sur <strong>chaque action manquée</strong>.</span>
-                         </p>
-                         <p className="flex items-start">
-                           <span className="mr-2 mt-1 text-green-500">✓</span>
-                           <span>Identifiez précisément vos points faibles pour <strong>progresser plus vite</strong>.</span>
-                         </p>
-                       </div>
-                       {/* --- END OF BULLET POINTS --- */}
                        <Button asChild size="lg" className="mt-2 w-full max-w-xs shadow-lg">
-                         <Link to="/pricing">Voir tous mes résultats</Link>
+                         <Link to="/pricing">Je m'abonne</Link>
                        </Button>
                     </div>
                   )}
