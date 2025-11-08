@@ -38,7 +38,7 @@ export const RecommendedSddSection: React.FC<RecommendedSddSectionProps> = ({
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold text-text">Situations de Départ & Stations recommandées</h2>
           <p className="text-subtext">
-            Recommandations de <span className="italic underline">l'IA pédagogique top ECOS</span>
+            Des stations jamais (ou peu) évaluées t'attendent ici
           </p>
         </div>
         <Link to="/cases">
