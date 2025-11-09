@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-premium";
 import { Badge } from "@/components/ui/badge-premium";
@@ -22,8 +21,8 @@ import { isSddPremium, isUserPremium } from "@/lib/premium";
 // Security utility functions
 const sanitizeText = (text: string | null | undefined): string => {
   if (!text) return '';
-  // Remove potentially dangerous characters and limit length
-  return text.replace(/[<>"'&]/g, '').substring(0, 200);
+  // Remove potentially dangerous characters (keep apostrophes) and limit length
+  return text.replace(/[<>"&]/g, '').substring(0, 200);
 };
 
 // (validateCaseData, sanitizeMessage) no longer needed; startSimulation performs validation
@@ -500,7 +499,7 @@ const Cases = () => {
                             className="w-full mt-4 bg-white text-text border border-[var(--border)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)]"
                             onClick={() => navigate('/pricing')}
                           >
-                            Je m'abonne
+                            je m'abonne
                           </Button>
                         ) : (
                           <Button
