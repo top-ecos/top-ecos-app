@@ -500,7 +500,7 @@ const Cases = () => {
                             className="w-full mt-4 bg-white text-text border border-[var(--border)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)]"
                             onClick={() => navigate('/pricing')}
                           >
-                            je m'abonne
+                            Je m'abonne
                           </Button>
                         ) : (
                           <Button
