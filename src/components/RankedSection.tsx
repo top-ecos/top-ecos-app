@@ -149,7 +149,7 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
             <UIDialogHeader>
               <DialogTitle>Comment ça marche ?</DialogTitle>
               <DialogDescription>
-                Les stations classées te permettent de comparer tes performances à celles des autres utilisateurs de top ECOS. Toutes les semaines, 3 nouvelles stations classées sont ajoutées à top ECOS. Fais-toi évaluer par l'IA top ECOS sur ces 3 nouvelles stations et vois comment tu te situes par rapport à tes concurrents. Le classement est réinitialisé toutes les semaines.
+                Les stations classées te permettent de comparer tes performances à celles des autres utilisateurs de top ECOS. Toutes les semaines, 3 nouvelles stations classées sont ajoutées à top ECOS. Fais-toi évaluer par l'IA top ECOS sur ces 3 nouvelles stations et vois comment tu te situes par rapport aux autres étudiants. Le classement est réinitialisé toutes les semaines.
               </DialogDescription>
             </UIDialogHeader>
           </DialogContent>
