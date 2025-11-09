@@ -335,9 +335,8 @@ const Auth = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Place Topecos logo at top-left corner */}
         {/* Logo top-left avec marge, pas collé au bord */}
-        <div className="fixed top-5 left-5 sm:top-6 sm:left-6 z-50">
+        <div className="fixed top-5 left-5 sm:top-6 sm:left-6 -translate-y-[15vh] z-50">
           <img
             src="/topecos-nocase.png"
             alt="Topecos logo"
