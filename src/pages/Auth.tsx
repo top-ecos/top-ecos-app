@@ -232,7 +232,7 @@ const Auth = () => {
       // Save details for later and move to code step
       setPendingAuth({ mode: 'signup', email, password, firstName, lastName, phone: fullPhone });
       setSignupStep('code');
-      setSuccess('Un code à 6 chiffres vient d\'être envoyé par sms.');
+      setSuccess('Un code à 6 chiffres vient d\'être envoyé.');
     } catch (err: any) {
       setError(translateAuthError(err?.message) || 'Impossible d\'envoyer le code');
     } finally {
@@ -334,7 +334,7 @@ const Auth = () => {
         {/* Header */}
         <div className="text-center mb-4">
           {/* Place Topecos logo at top-left corner */}
-          <div className="absolute -top-4 sm:-top-5 lg:-top-6 left-4">
+          <div className="absolute top-0 left-4">
             <img
               src="/topecos-nocase.png"
               alt="Topecos logo"
@@ -342,7 +342,7 @@ const Auth = () => {
             />
           </div>
 
-          <p className="text-black text-xl font-bold">
+          <p className="text-black text-xl italic font-bold">
             {activeTab === 'signin' ? 'Heureux de te voir !' : 'Inscris-toi gratuitement'}
           </p>
           </div>
@@ -596,7 +596,7 @@ const Auth = () => {
                     style={{ backgroundColor: '#03BB26' }}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Envoi du code...' : <strong>Je m'inscris</strong>}
+                    {isLoading ? 'Envoi du code...' : <strong>Inscription</strong>}
                   </Button>
                 </form>
                 )}
@@ -657,7 +657,15 @@ const Auth = () => {
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    conditions d’utilisation et notre politique de confidentialité
+                    conditions d’utilisation
+                  </a>{' '}et notre{' '}
+                  <a
+                    href="https://top-ecos.com/legal"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    politique de confidentialité
                   </a>{'.'}
                 </div>
               </TabsContent>
