@@ -18,16 +18,16 @@ const translateAuthError = (message?: string | null): string => {
 
   // Credentials / login
   if (m.includes('invalid login credentials')) return 'Identifiants de connexion invalides.';
-  if (m.includes('email not confirmed')) return 'Veuillez confirmer votre adresse e‑mail avant de vous connecter.';
+  if (m.includes('email not confirmed')) return 'Veuillez confirmer votre adresse e-mail avant de vous connecter.';
   if (m.includes('invalid email or password')) return 'Email ou mot de passe incorrect.';
 
   // Sign up / existing user
   if (m.includes('user already registered') || m.includes('user already exists')) {
-    return 'Un compte existe déjà avec cet e‑mail.';
+    return 'Un compte existe déjà avec cet e-mail.';
   }
 
   // Validation
-  if (m.includes('invalid email')) return 'Adresse e‑mail invalide.';
+  if (m.includes('invalid email')) return 'Adresse e-mail invalide.';
   if (m.includes('password should be at least 6 characters') || m.includes('password too short')) {
     return 'Le mot de passe doit contenir au moins 6 caractères.';
   }
@@ -328,18 +328,27 @@ const Auth = () => {
 
   // Back navigation removed per request
 
-  {/* Place Topecos logo at top-left corner */}
-<div className="fixed top-[20%] left-0 sm:left-4 z-50">
-  <img
-    src="/topecos-nocase.png"
-    alt="Topecos logo"
-    className="h-36 w-36 object-contain rounded-full transform origin-top-left scale-[0.7] sm:scale-100"
-  />
-</div>
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  // FIX APPLIQUÉ : tout le JSX ci-dessous est désormais DANS le return.
+  // + Ajout du wrapper <div className="text-center mb-4"> pour le <p>.
+  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Place Topecos logo at top-left corner */}
+        <div className="fixed top-[20%] left-0 sm:left-4 z-50">
+          <img
+            src="/topecos-nocase.png"
+            alt="Topecos logo"
+            className="h-36 w-36 object-contain rounded-full transform origin-top-left scale-[0.7] sm:scale-100"
+          />
+        </div>
+
+        <div className="text-center mb-4">
           <p className="text-black text-xl font-bold">
             {activeTab === 'signin' ? 'Heureux de te voir !' : 'Inscris-toi gratuitement'}
           </p>
-          </div>
+        </div>
 
         {/* Auth Card */}
         <Card>
