@@ -328,21 +328,15 @@ const Auth = () => {
 
   // Back navigation removed per request
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-4">
-          {/* Place Topecos logo at top-left corner */}
-          <div className="absolute top-0 left-4">
-            <img
-              src="/topecos-nocase.png"
-              alt="Topecos logo"
-              className="h-36 w-36 object-contain rounded-full"
-            />
-          </div>
-
-          <p className="text-black text-xl italic font-bold">
+  {/* Place Topecos logo at top-left corner */}
+<div className="fixed top-[20%] left-0 sm:left-4 z-50">
+  <img
+    src="/topecos-nocase.png"
+    alt="Topecos logo"
+    className="h-36 w-36 object-contain rounded-full transform origin-top-left scale-[0.7] sm:scale-100"
+  />
+</div>
+          <p className="text-black text-xl font-bold">
             {activeTab === 'signin' ? 'Heureux de te voir !' : 'Inscris-toi gratuitement'}
           </p>
           </div>
@@ -657,15 +651,7 @@ const Auth = () => {
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    conditions d’utilisation
-                  </a>{' '}et notre{' '}
-                  <a
-                    href="https://top-ecos.com/legal"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    politique de confidentialité
+                    conditions d’utilisation et notre politque de confidentialité
                   </a>{'.'}
                 </div>
               </TabsContent>
