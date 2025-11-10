@@ -49,7 +49,7 @@ const pricingTiers: PricingPlan[] = [
             'Accès prioritaire au support'
         ],
         ctaText: 'Je m\'abonne',
-        stripeLink: 'https://buy.stripe.com/test_6oUdRa6Yh85Zg4qcOw57W03',
+        stripeLink: 'https://buy.stripe.com/6oUdRa6Yh85Zg4qcOw57W03',
         priceId: VITE_STRIPE_MONTHLY_PRICE_ID,
         mode: 'subscription',
         isPremium: true,
@@ -71,7 +71,7 @@ const pricingTiers: PricingPlan[] = [
             'Accès anticipé aux nouvelles fonctionnalités'
         ],
         ctaText: 'Je m\'entraîne non-stop !',
-        stripeLink: 'https://buy.stripe.com/test_14A5kE6Yhcmff0m29S57W04',
+        stripeLink: 'https://buy.stripe.com/14A5kE6Yhcmff0m29S57W04',
         priceId: VITE_STRIPE_SEASON_PRICE_ID,
         mode: 'payment',
         isPremium: true,
