@@ -109,21 +109,25 @@ const Profil = () => {
           last_name: formData.last_name.trim(),
           phone: formData.phone.trim(),
           emoji: formData.emoji ? formData.emoji : null,
-          updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id);
 
       if (error) {
         throw error;
       }
-      // Write-through to Supabase Auth metadata for first_name/last_name
+      // Write-through to Supabase Auth metadata while preserving existing keys (including phone)
       try {
-        await supabase.auth.updateUser({
-          data: {
-            first_name: formData.first_name.trim(),
-            last_name: formData.last_name.trim(),
-          },
-        });
+        const currentMeta = (user?.user_metadata as Record<string, any>) || {};
+        const phoneTrimmed = formData.phone.trim();
+        const nextMeta: Record<string, any> = {
+          ...currentMeta,
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+        };
+        if (phoneTrimmed) {
+          nextMeta.phone = phoneTrimmed;
+        }
+        await supabase.auth.updateUser({ data: nextMeta });
       } catch (metaErr) {
         console.warn('Auth metadata update warning:', metaErr);
       }
@@ -162,7 +166,7 @@ const Profil = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ emoji: nextEmoji ? nextEmoji : null, updated_at: new Date().toISOString() })
+        .update({ emoji: nextEmoji ? nextEmoji : null })
         .eq('user_id', user.id);
       if (error) throw error;
 
@@ -327,7 +331,7 @@ const Profil = () => {
                 className="text-xs text-accent hover:underline disabled:opacity-50"
                 disabled={isUpdatingEmoji}
               >
-                {showEmojiPicker ? 'Fermer' : (displayEmoji ? 'Changer' : 'Ajouter un emoji')}
+                {showEmojiPicker ? 'Fermer' : (displayEmoji ? 'Changer' : 'Ajouter une emoji')}
               </button>
             </div>
           </div>
@@ -335,14 +339,14 @@ const Profil = () => {
           {showEmojiPicker && (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-gray-600">Choisis un emoji pour ton avatar.</p>
+                <p className="text-sm text-gray-600">Choisis une emoji pour ton avatar.</p>
                 <button
                   type="button"
                   className="text-xs text-gray-500 hover:text-gray-700"
                   onClick={() => handleSelectEmoji('')}
                   disabled={isUpdatingEmoji}
                 >
-                  {displayEmoji ? 'Retirer l\'emoji' : 'Aucun emoji'}
+                  {displayEmoji ? 'Retirer l\'emoji' : 'Aucune emoji'}
                 </button>
               </div>
               <div className="grid grid-cols-9 gap-2">
@@ -531,7 +535,7 @@ const Profil = () => {
                           <Zap size={14} className="mr-1" />
                           Premium
                         </span>
-                        Gérer mon abonnement
+                        Manager mon abonnement
                       </>
                     )}
                   </button>
@@ -555,6 +559,10 @@ const Profil = () => {
                     onClick={() => navigate('/pricing')}
                     className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-full text-white bg-accent hover:bg-[#03BB26]/85"
                   >
+                    <span className="inline-flex items-center bg-white/20 text-white text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">
+                      <Zap size={14} className="mr-1" />
+                      Premium
+                    </span>
                     Je m’abonne à top ECOS Premium
                   </button>
                 </div>
