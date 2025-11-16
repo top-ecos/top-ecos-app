@@ -18,16 +18,16 @@ const translateAuthError = (message?: string | null): string => {
 
   // Credentials / login
   if (m.includes('invalid login credentials')) return 'Identifiants de connexion invalides.';
-  if (m.includes('email not confirmed')) return 'Veuillez confirmer votre adresse e-mail avant de vous connecter.';
+  if (m.includes('email not confirmed')) return 'Veuillez confirmer votre adresse e‑mail avant de vous connecter.';
   if (m.includes('invalid email or password')) return 'Email ou mot de passe incorrect.';
 
   // Sign up / existing user
   if (m.includes('user already registered') || m.includes('user already exists')) {
-    return 'Un compte existe déjà avec cet e-mail.';
+    return 'Un compte existe déjà avec cet e‑mail.';
   }
 
   // Validation
-  if (m.includes('invalid email')) return 'Adresse e-mail invalide.';
+  if (m.includes('invalid email')) return 'Adresse e‑mail invalide.';
   if (m.includes('password should be at least 6 characters') || m.includes('password too short')) {
     return 'Le mot de passe doit contenir au moins 6 caractères.';
   }
@@ -66,7 +66,7 @@ const Auth = () => {
   const [pendingAuth, setPendingAuth] = useState<
     { mode: 'signup'; email: string; password: string; firstName: string; lastName: string; phone?: string } | null
   >(null);
-  const { signIn, signUp } = useAuth();
+  const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -135,7 +135,7 @@ const Auth = () => {
   };
 
   const validatePhone = (phone: string): string | null => {
-    if (!phone) return null; // Phone is optional
+    if (!phone || !phone.trim()) return "Le numéro de téléphone est requis";
     const phoneRegex = /^[0-9\s]{8,15}$/;
     if (!phoneRegex.test(phone.replace(/\s/g, ''))) {
       return 'Le numéro de téléphone doit contenir entre 8 et 15 chiffres';
@@ -232,7 +232,7 @@ const Auth = () => {
       // Save details for later and move to code step
       setPendingAuth({ mode: 'signup', email, password, firstName, lastName, phone: fullPhone });
       setSignupStep('code');
-      setSuccess('Un code à 6 chiffres vient d\'être envoyé.');
+      setSuccess('Un code à 6 chiffres vient d\'être envoyé par SMS.');
     } catch (err: any) {
       setError(translateAuthError(err?.message) || 'Impossible d\'envoyer le code');
     } finally {
@@ -264,31 +264,17 @@ const Auth = () => {
     setSuccess(null);
 
     try {
-      // Verify the 6-digit code (signup only)
+      // Verify the 6-digit code and create the user server-side (service key)
       const { email, password, firstName, lastName, phone } = pendingAuth;
-      const { error: verifyError } = await supabase.functions.invoke('verify-code', {
-        body: { code: verificationCode, phone },
+      const { data, error: verifyError } = await supabase.functions.invoke('verify-code', {
+        body: { code: verificationCode, email, password, firstName, lastName, phone },
       });
       if (verifyError) throw verifyError;
 
-      const { error } = await signUp(email, password, firstName, lastName, phone);
-      if (error) throw error;
+      // Then sign in with the provided credentials
+      const { error: signInError } = await signIn(email, password);
+      if (signInError) throw signInError;
 
-      // Ensure we have the user ID to upsert into profiles
-      const { data: userRes } = await supabase.auth.getUser();
-      const userId = userRes?.user?.id;
-      if (userId) {
-        await supabase.from('profiles').upsert(
-          {
-            user_id: userId,
-            first_name: firstName,
-            last_name: lastName,
-            phone: phone,
-            email: email,
-          },
-          { onConflict: 'user_id' as any }
-        );
-      }
       navigate(from, { replace: true });
     } catch (err: any) {
       setError(translateAuthError(err?.message) || 'Code invalide');
@@ -301,9 +287,10 @@ const Auth = () => {
   useEffect(() => {
     const hash = window.location.hash || '';
     const params = new URLSearchParams(hash.replace('#', ''));
-    const type = params.get('type');
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
+    const searchParams = new URLSearchParams(window.location.search || '');
+    const type = params.get('type') || searchParams.get('type');
+    const access_token = params.get('access_token') || searchParams.get('access_token');
+    const refresh_token = params.get('refresh_token') || searchParams.get('refresh_token');
 
     // If recovery params present, set the session and show reset form
     if (type === 'recovery' && access_token && refresh_token) {
@@ -314,6 +301,17 @@ const Auth = () => {
         history.replaceState(null, '', window.location.pathname + window.location.search);
       });
     }
+
+    // Also honor a persisted flag (set by AuthProvider) in case
+    // the library consumed the URL hash before this effect ran.
+    try {
+      const flagged = sessionStorage.getItem('sb_pwd_recovery');
+      if (flagged === '1') {
+        setActiveTab('signin');
+        setAuthStep('reset');
+        sessionStorage.removeItem('sb_pwd_recovery');
+      }
+    } catch {}
 
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {
@@ -328,27 +326,24 @@ const Auth = () => {
 
   // Back navigation removed per request
 
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-  // FIX APPLIQUÉ : tout le JSX ci-dessous est désormais DANS le return.
-  // + Ajout du wrapper <div className="text-center mb-4"> pour le <p>.
-  // >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo top-left avec marge, pas collé au bord */}
-        <div className="hidden sm:block fixed top-5 left-5 sm:top-6 sm:left-6 -translate-y-[5vh] z-50">
-          <img
-            src="/topecos-nocase.png"
-            alt="Topecos logo"
-            className="h-36 w-36 object-contain rounded-full transform origin-top-left scale-[0.7] sm:scale-100"
-          />
-        </div>
-
+        {/* Header */}
         <div className="text-center mb-4">
-          <p className="text-black text-xl font-bold">
+          {/* Place Topecos logo at top-left corner */}
+          <div className="absolute top-0 left-4">
+            <img
+              src="/topecos-nocase.png"
+              alt="Topecos logo"
+              className="h-36 w-36 object-contain rounded-full"
+            />
+          </div>
+
+          <p className="text-black text-xl italic font-bold">
             {activeTab === 'signin' ? 'Heureux de te voir !' : 'Inscris-toi gratuitement'}
           </p>
-        </div>
+          </div>
 
         {/* Auth Card */}
         <Card>
@@ -506,7 +501,7 @@ const Auth = () => {
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-firstname">Prénom</Label>
+                      <Label htmlFor="signup-firstname">Prénom <span className="text-red-600">*</span></Label>
                       <Input
                         id="signup-firstname"
                         name="firstName"
@@ -517,7 +512,7 @@ const Auth = () => {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="signup-lastname">Nom</Label>
+                      <Label htmlFor="signup-lastname">Nom <span className="text-red-600">*</span></Label>
                       <Input
                         id="signup-lastname"
                         name="lastName"
@@ -529,7 +524,7 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
+                    <Label htmlFor="signup-email">Email <span className="text-red-600">*</span></Label>
                     <Input
                       id="signup-email"
                       name="email"
@@ -544,7 +539,7 @@ const Auth = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Téléphone</Label>
+                    <Label htmlFor="signup-phone">Téléphone <span className="text-red-600">*</span></Label>
                     <div className="flex gap-2">
                       <Select value={countryCode} onValueChange={setCountryCode}>
                         <SelectTrigger className="w-[120px]">
@@ -567,6 +562,7 @@ const Auth = () => {
                         name="phoneNumber"
                         type="tel"
                         placeholder="6 12 34 56 78"
+                        required
                         className={`flex-1 ${validationErrors.phone ? 'border-red-500' : ''}`}
                       />
                     </div>
@@ -576,7 +572,7 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Mot de passe</Label>
+                    <Label htmlFor="signup-password">Mot de passe <span className="text-red-600">*</span></Label>
                     <Input
                       id="signup-password"
                       name="password"
@@ -660,7 +656,15 @@ const Auth = () => {
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    conditions d’utilisation et notre politque de confidentialité
+                    conditions d’utilisation
+                  </a>{' '}et notre{' '}
+                  <a
+                    href="https://top-ecos.com/legal"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline"
+                  >
+                    politique de confidentialité
                   </a>{'.'}
                 </div>
               </TabsContent>
