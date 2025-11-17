@@ -5,6 +5,7 @@ type UseSpeechRecognitionOptions = {
   interimResults?: boolean;
   continuous?: boolean;
   maxDurationMs?: number;
+  silenceMs?: number;
   onResult?: (text: string, isFinal: boolean) => void;
 };
 
@@ -21,7 +22,8 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
     lang = "fr-FR",
     interimResults = true,
     continuous = false,
-    maxDurationMs = 20000,
+    maxDurationMs = 45000,
+    silenceMs = 2000,
     onResult,
   } = options;
 
@@ -37,6 +39,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
 
   const recognitionRef = useRef<any | null>(null);
   const timeoutRef = useRef<number | null>(null);
+  const silenceRef = useRef<number | null>(null);
 
   const clearTimer = () => {
     if (timeoutRef.current) {
@@ -45,9 +48,25 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
     }
   };
 
+  const clearSilence = () => {
+    if (silenceRef.current) {
+      window.clearTimeout(silenceRef.current);
+      silenceRef.current = null;
+    }
+  };
+
+  const armSilence = () => {
+    clearSilence();
+    silenceRef.current = window.setTimeout(() => {
+      // Manual stop after extended silence
+      stop();
+    }, Math.max(500, silenceMs));
+  };
+
   const stop = useCallback(() => {
     try {
       clearTimer();
+      clearSilence();
       if (recognitionRef.current) {
         // Calling stop triggers onend
         recognitionRef.current.stop();
@@ -73,10 +92,13 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
       rec.onstart = () => {
         setIsListening(true);
         setError(null);
+        armSilence();
       };
 
       rec.onresult = (event: any) => {
         try {
+          // Reset silence timer on every result
+          armSilence();
           let interim = "";
           let final = "";
           for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -102,13 +124,19 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
         stop();
       };
 
+      // Native onspeechend can be overly aggressive (~0.5s pauses).
+      // We rely on our extended silence timer instead of stopping here.
       rec.onspeechend = () => {
-        // User stopped speaking
-        stop();
+        // Intentionally no-op; silence timer will handle stopping.
+      };
+
+      rec.onaudiostart = () => {
+        armSilence();
       };
 
       rec.onend = () => {
         clearTimer();
+        clearSilence();
         setIsListening(false);
       };
 
@@ -136,4 +164,3 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
 
   return { isSupported, isListening, error, start, stop };
 }
-

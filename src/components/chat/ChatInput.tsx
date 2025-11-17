@@ -37,9 +37,21 @@ const ChatInput = ({
     }
   };
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (isSending || !inputMessage.trim() || isDisabled) return;
-    
+
+    // If dictation is active, stop first and wait for it to end
+    if (isListening) {
+      stop();
+      const started = Date.now();
+      // Wait up to 1500ms for isListening to flip to false
+      while (Date.now() - started < 1500) {
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 50));
+        if (!isListening) break;
+      }
+    }
+
     setIsSending(true);
     try {
       onSend();
@@ -56,7 +68,8 @@ const ChatInput = ({
     lang: "fr-FR",
     interimResults: true,
     continuous: false,
-    maxDurationMs: 20000,
+    maxDurationMs: 45000,
+    silenceMs: 2000,
     onResult: (text, isFinal) => {
       const base = baseTextRef.current || "";
       const prevFinal = finalDictationRef.current || "";
