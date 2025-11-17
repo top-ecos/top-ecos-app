@@ -1,8 +1,10 @@
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button-premium";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { Mic, MicOff, Send } from "lucide-react";
+import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
+import { toast } from "@/components/ui/sonner";
 
 interface ChatInputProps {
   inputMessage: string;
@@ -25,6 +27,8 @@ const ChatInput = ({
 }: ChatInputProps) => {
   const [isSending, setIsSending] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const baseTextRef = useRef<string>("");
+  const finalDictationRef = useRef<string>("");
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -46,6 +50,58 @@ const ChatInput = ({
 
   const isDisabled = isLoading || isPaused || isTimeUp;
   const buttonDisabled = isDisabled || !inputMessage.trim() || isSending;
+
+  // Speech recognition integration
+  const { isSupported, isListening, error, start, stop } = useSpeechRecognition({
+    lang: "fr-FR",
+    interimResults: true,
+    continuous: false,
+    maxDurationMs: 20000,
+    onResult: (text, isFinal) => {
+      const base = baseTextRef.current || "";
+      const prevFinal = finalDictationRef.current || "";
+      if (isFinal) {
+        finalDictationRef.current = `${prevFinal}${prevFinal ? " " : ""}${text}`.trim();
+        const merged = `${base} ${finalDictationRef.current}`.trim();
+        onInputChange(merged);
+      } else {
+        const preview = `${base} ${prevFinal} ${text}`.trim();
+        onInputChange(preview);
+      }
+    },
+  });
+
+  // Stop dictation if input becomes disabled (pause/timeup/loading)
+  useEffect(() => {
+    if (isDisabled && isListening) {
+      stop();
+    }
+  }, [isDisabled, isListening, stop]);
+
+  // Surface common errors as toasts (non-blocking)
+  useEffect(() => {
+    if (!error) return;
+    const messages: Record<string, string> = {
+      'not-allowed': "Autorise le micro pour utiliser la dictée.",
+      'service-not-allowed': "Le service micro est bloqué par le navigateur.",
+      'no-speech': "Aucun son détecté. Réessaie.",
+      'network': "Problème réseau détecté.",
+      'start-failed': "Impossible de démarrer la dictée.",
+      'unknown': "Erreur de dictée inconnue.",
+    };
+    toast.error(messages[error] || `Erreur de dictée: ${error}`);
+  }, [error]);
+
+  const toggleListening = () => {
+    if (isDisabled) return;
+    if (!isListening) {
+      baseTextRef.current = inputMessage;
+      finalDictationRef.current = "";
+      start();
+    } else {
+      stop();
+    }
+  };
 
   return (
     <div className="p-4 bg-white">
@@ -76,6 +132,21 @@ const ChatInput = ({
             target.style.height = Math.min(target.scrollHeight, 120) + 'px';
           }}
         />
+        {isSupported && (
+          <Button
+            onClick={toggleListening}
+            disabled={isDisabled}
+            className={`h-[50px] w-[50px] rounded-full flex items-center justify-center transition-colors duration-200 border ${
+              isListening
+                ? 'bg-red-500 hover:bg-red-600 text-white border-red-600 shadow-lg shadow-red-200'
+                : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300'
+            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            title={isListening ? 'Arrêter la dictée' : 'Démarrer la dictée'}
+            aria-label={isListening ? 'Arrêter la dictée' : 'Démarrer la dictée'}
+          >
+            {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </Button>
+        )}
         <Button 
           onClick={handleSend}
           disabled={buttonDisabled}
