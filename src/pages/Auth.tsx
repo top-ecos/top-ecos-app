@@ -340,7 +340,7 @@ const Auth = () => {
             />
           </div>
 
-          <p className="text-black text-xl italic font-bold">
+          <p className="text-black text-xl font-bold">
             {activeTab === 'signin' ? 'Heureux de te voir !' : 'Inscris-toi gratuitement'}
           </p>
           </div>
