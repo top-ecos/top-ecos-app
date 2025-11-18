@@ -26,7 +26,7 @@ const pricingTiers: PricingPlan[] = [
     {
         title: 'Gratuit',
         price: '0€',
-        subtitle: 'pour débuter avec top ECOS.',
+        subtitle: 'pour découvrir top ECOS.',
         features: [
             '5 stations jouables / semaine',
             '15 stations disponibles',
@@ -140,11 +140,7 @@ const Pricing = () => {
                     </div>
 
                     {/* Align pricing cards to the top across breakpoints */}
-<<<<<<< Updated upstream
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start lg:items-start">
-=======
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,0.92fr)_360px_360px] xl:grid-cols-[minmax(0,0.92fr)_400px_400px] gap-6 lg:gap-8 items-start lg:items-start">
->>>>>>> Stashed changes
                         {pricingTiers.map((plan) => (
                             <div 
                                 key={plan.title} 
