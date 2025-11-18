@@ -26,7 +26,7 @@ const pricingTiers: PricingPlan[] = [
     {
         title: 'Gratuit',
         price: '0€',
-        subtitle: 'pour débuter avec top ECOS.',
+        subtitle: 'pour découvrir top ECOS.',
         features: [
             '5 stations jouables / semaine',
             '15 stations disponibles',
