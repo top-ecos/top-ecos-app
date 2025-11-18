@@ -1,9 +1,8 @@
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button-premium';
-import { ChevronRight, Loader2 } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useState } from 'react';
 
 type PricingPlan = {
     title: string;
@@ -27,10 +26,10 @@ const pricingTiers: PricingPlan[] = [
     {
         title: 'Gratuit',
         price: '0€',
-        subtitle: 'pour découvrir top ECOS.',
+        subtitle: 'pour débuter avec top ECOS.',
         features: [
-            '5 stations évaluées / semaine',
-            '20 stations disponibles',
+            '5 stations jouables / semaine',
+            '15 stations disponibles',
             'Évaluation IA partielle'
         ],
         isPremium: false,
@@ -43,14 +42,14 @@ const pricingTiers: PricingPlan[] = [
         subtitle: 'pour t\'entraîner à ton rythme.',
         features: [
             'Stations en illimité',
-            '+5 nouvelles stations classées / semaine',
+            '+5 nouvelles stations / semaine',
             'Classement hebdomadaire dynamique',
             'Classement par station',
             'Évaluation IA complète',
             'Accès prioritaire au support'
         ],
         ctaText: 'Je m\'abonne',
-        stripeLink: 'https://buy.stripe.com/test_6oUdRa6Yh85Zg4qcOw57W03',
+        stripeLink: 'https://buy.stripe.com/6oUdRa6Yh85Zg4qcOw57W03',
         priceId: VITE_STRIPE_MONTHLY_PRICE_ID,
         mode: 'subscription',
         isPremium: true,
@@ -61,10 +60,10 @@ const pricingTiers: PricingPlan[] = [
         price: '17€',
         priceSuffix: '/ mois*',
         subtitle: 'pour une préparation complète jusqu\'aux ECOS 2026',
-        footnote: '*paiement unique',
+        footnote: '*paiement unique, premium activé jusqu\'au 31 mai 2026',
         features: [
             'Stations en illimité',
-            '+5 nouvelles stations classées / semaine',
+            '+5 nouvelles stations / semaine',
             'Classement hebdomadaire dynamique',
             'Classement par station',
             'Évaluation IA complète',
@@ -72,7 +71,7 @@ const pricingTiers: PricingPlan[] = [
             'Accès anticipé aux nouvelles fonctionnalités'
         ],
         ctaText: 'Je m\'entraîne non-stop !',
-        stripeLink: 'https://buy.stripe.com/test_14A5kE6Yhcmff0m29S57W04',
+        stripeLink: 'https://buy.stripe.com/14A5kE6Yhcmff0m29S57W04',
         priceId: VITE_STRIPE_SEASON_PRICE_ID,
         mode: 'payment',
         isPremium: true,
@@ -89,13 +88,8 @@ const CheckIcon = ({ className = 'text-[var(--accent)]' }: { className?: string 
 
 const Pricing = () => {
     const { user } = useAuth();
-    const [loadingTier, setLoadingTier] = useState<string | null>(null);
 
-    const initiateCheckout = async (
-        priceId?: string,
-        mode?: 'payment' | 'subscription',
-        planTitle?: string,
-    ) => {
+    const initiateCheckout = async (priceId?: string, mode?: 'payment' | 'subscription') => {
         console.log('--- initiateCheckout called ---');
 
         if (!priceId || !mode) {
@@ -105,20 +99,16 @@ const Pricing = () => {
         }
 
         try {
-            // Set loading only after basic validation, before network call
-            if (planTitle) setLoadingTier(planTitle);
             const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
             if (sessionError) {
                 console.error('Error getting session:', sessionError);
                 alert(`Erreur d\'authentification: ${sessionError.message}`);
-                setLoadingTier(null);
                 return;
             }
             if (!sessionData.session) {
                 console.error('DEBUG: supabase.auth.getSession() returned NULL session.');
                 console.log('Full session data:', sessionData);
                 alert('Votre session a expiré ou est invalide. Veuillez vous reconnecter et réessayer.');
-                setLoadingTier(null);
                 return;
             }
 
@@ -136,22 +126,25 @@ const Pricing = () => {
             const message = error instanceof Error ? error.message : 'Une erreur est survenue.';
             console.error('Error in checkout process:', error);
             alert(`Une erreur est survenue: ${message}`);
-            setLoadingTier(null);
         }
     };
 
     return (
         <Layout>
             <section id="pricing" className="bg-gray-50/50">
-                <div className="py-24 px-4 max-w-6xl mx-auto">
-                    <div className="flex flex-col text-center w-full mb-16">
-                        <h1 className="font-bold text-3xl lg:text-4xl tracking-tight text-text max-w-2xl mx-auto">
-                            Ne perds plus de temps à te demander comment préparer tes ECOS.
+                <div className="pt-8 pb-20 px-4 max-w-6xl mx-auto">
+                    <div className="flex flex-col text-center w-full mb-8">
+                        <h1 className="font-bold text-2xl lg:text-3xl tracking-tight text-text max-w-2xl mx-auto">
+                            Prends de l'avance : passe à top ECOS Premium. 
                         </h1>
                     </div>
 
                     {/* Align pricing cards to the top across breakpoints */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,0.8fr)_360px_360px] xl:grid-cols-[minmax(0,0.8fr)_400px_400px] gap-6 lg:gap-8 items-start lg:items-start">
+<<<<<<< Updated upstream
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start lg:items-start">
+=======
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,0.92fr)_360px_360px] xl:grid-cols-[minmax(0,0.92fr)_400px_400px] gap-6 lg:gap-8 items-start lg:items-start">
+>>>>>>> Stashed changes
                         {pricingTiers.map((plan) => (
                             <div 
                                 key={plan.title} 
@@ -199,18 +192,10 @@ const Pricing = () => {
                                                     ? 'bg-white text-text border border-[var(--border)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)]'
                                                     : 'text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-[var(--accent)]'
                                                 }`}
-                                            disabled={loadingTier === plan.title}
-                                            aria-busy={loadingTier === plan.title}
-                                            onClick={() => initiateCheckout(plan.priceId, plan.mode, plan.title)}
+                                            onClick={() => initiateCheckout(plan.priceId, plan.mode)}
                                         >
-                                            <span className="font-bold text-sm sm:text-base leading-tight break-words">
-                                                {loadingTier === plan.title ? 'Redirection…' : plan.ctaText}
-                                            </span>
-                                            {loadingTier === plan.title ? (
-                                                <Loader2 size={18} className="ml-2 animate-spin" />
-                                            ) : (
-                                                <ChevronRight size={18} className="ml-2" />
-                                            )}
+                                            <span className="font-bold text-sm sm:text-base leading-tight break-words">{plan.ctaText}</span>
+                                            <ChevronRight size={18} className="ml-2" />
                                         </Button>
                                     </div>
                                 )}
