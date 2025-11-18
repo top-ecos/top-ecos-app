@@ -332,11 +332,11 @@ const Auth = () => {
         {/* Header */}
         <div className="text-center mb-4">
           {/* Place Topecos logo at top-left corner */}
-          <div className="absolute top-0 left-4">
-            <img
-              src="/topecos-nocase.png"
-              alt="Topecos logo"
-              className="h-36 w-36 object-contain rounded-full"
+          <div className="hidden sm:block fixed top-5 left-5 sm:top-6 sm:left-6 -translate-y-[5vh] z-50">
+          <img
+            src="/topecos-nocase.png"
+            alt="top ecos logo"
+            className="h-36 w-36 object-contain rounded-full transform origin-top-left scale-[0.7] sm:scale-100"
             />
           </div>
 
@@ -434,7 +434,7 @@ const Auth = () => {
                         id="forgot-email"
                         name="email"
                         type="email"
-                        placeholder="votre.email@exemple.com"
+                        placeholder="mardi.mai@top-ecos.com"
                         required
                       />
                     </div>
@@ -506,7 +506,7 @@ const Auth = () => {
                         id="signup-firstname"
                         name="firstName"
                         type="text"
-                        placeholder="Jean"
+                        placeholder="Mardi"
                         required
                       />
                     </div>
@@ -517,7 +517,7 @@ const Auth = () => {
                         id="signup-lastname"
                         name="lastName"
                         type="text"
-                        placeholder="Dupont"
+                        placeholder="Mai"
                         required
                       />
                     </div>
@@ -529,7 +529,7 @@ const Auth = () => {
                       id="signup-email"
                       name="email"
                       type="email"
-                      placeholder="votre.email@exemple.com"
+                      placeholder="mardi.mai@top-ecos.com"
                       required
                       className={validationErrors.email ? 'border-red-500' : ''}
                     />
@@ -616,7 +616,7 @@ const Auth = () => {
                         onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         required
                       />
-                      <p className="text-xs text-muted-foreground">Entre le code à 6 chiffres</p>
+                      <p className="text-xs text-muted-foreground">Entre le code à 6 chiffres reçu par SMS</p>
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -626,7 +626,7 @@ const Auth = () => {
                         disabled={resendLoading}
                         className="text-xs underline text-muted-foreground hover:text-muted-foreground"
                       >
-                        {resendLoading ? 'Renvoi...' : 'Renvoyer le code'}
+                        {resendLoading ? 'Renvoi...' : 'Renvoyer le code SMS'}
                       </button>
                       <button
                         type="button"
@@ -656,15 +656,7 @@ const Auth = () => {
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    conditions d’utilisation
-                  </a>{' '}et notre{' '}
-                  <a
-                    href="https://top-ecos.com/legal"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    politique de confidentialité
+                    conditions d’utilisation et notre politique de confidentialité
                   </a>{'.'}
                 </div>
               </TabsContent>
