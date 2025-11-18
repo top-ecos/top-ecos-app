@@ -512,11 +512,11 @@ const Cases = () => {
                             {startingStationId === sdd.id ? (
                               <>
                                 <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-2"></div>
-                                Initialisation...
+                                Lancement de la station...
                               </>
                             ) : !profile || profile.tokens <= 0 ? (
                               <>
-                                Tokens insuffisants
+                                Quota hebdomadaire épuisé
                               </>
                             ) : (
                               <>
