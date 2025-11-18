@@ -331,7 +331,7 @@ const Profil = () => {
                 className="text-xs text-accent hover:underline disabled:opacity-50"
                 disabled={isUpdatingEmoji}
               >
-                {showEmojiPicker ? 'Fermer' : (displayEmoji ? 'Changer' : 'Ajouter une emoji')}
+                {showEmojiPicker ? 'Fermer' : (displayEmoji ? 'Changer' : 'Ajouter un emoji')}
               </button>
             </div>
           </div>
@@ -339,14 +339,14 @@ const Profil = () => {
           {showEmojiPicker && (
             <div className="mb-6">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm text-gray-600">Choisis une emoji pour ton avatar.</p>
+                <p className="text-sm text-gray-600">Choisis un emoji pour ton avatar.</p>
                 <button
                   type="button"
                   className="text-xs text-gray-500 hover:text-gray-700"
                   onClick={() => handleSelectEmoji('')}
                   disabled={isUpdatingEmoji}
                 >
-                  {displayEmoji ? 'Retirer l\'emoji' : 'Aucune emoji'}
+                  {displayEmoji ? 'Retirer l\'emoji' : 'Aucun emoji'}
                 </button>
               </div>
               <div className="grid grid-cols-9 gap-2">
@@ -535,7 +535,7 @@ const Profil = () => {
                           <Zap size={14} className="mr-1" />
                           Premium
                         </span>
-                        Manager mon abonnement
+                        Gérer mon abonnement
                       </>
                     )}
                   </button>
