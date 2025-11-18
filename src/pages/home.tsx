@@ -376,7 +376,7 @@ const Dashboard = () => {
                               <Zap className="h-10 w-10 text-primary mx-auto" />
                             </div>
                             <h2 className="text-2xl sm:text-3xl font-semibold text-text mb-2">
-                              Continuez votre entraînement en illimité
+                              Continue ton entraînement en illimité
                             </h2>
                             <p className="text-subtext mb-8">
                               Tu as utilisé toutes tes sessions gratuites de la semaine. Passe à Premium pour débloquer toutes les stations et continuer ton entraînement.
@@ -450,7 +450,7 @@ const Dashboard = () => {
                                   {startingStationId === currentSdd.id ? (
                                     <>
                                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-                                      Initialisation...
+                                      Lancement de la station...
                                     </>
                                   ) : (
                                     <>
