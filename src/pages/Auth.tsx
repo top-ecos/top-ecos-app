@@ -391,7 +391,7 @@ const Auth = () => {
                         id="signin-email"
                         name="email"
                         type="email"
-                        placeholder="votre.email@exemple.com"
+                        placeholder="mardi.mai@top-ecos.com"
                         required
                       />
                     </div>
