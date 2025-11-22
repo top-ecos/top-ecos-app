@@ -109,21 +109,25 @@ const Profil = () => {
           last_name: formData.last_name.trim(),
           phone: formData.phone.trim(),
           emoji: formData.emoji ? formData.emoji : null,
-          updated_at: new Date().toISOString(),
         })
         .eq('user_id', user.id);
 
       if (error) {
         throw error;
       }
-      // Write-through to Supabase Auth metadata for first_name/last_name
+      // Write-through to Supabase Auth metadata while preserving existing keys (including phone)
       try {
-        await supabase.auth.updateUser({
-          data: {
-            first_name: formData.first_name.trim(),
-            last_name: formData.last_name.trim(),
-          },
-        });
+        const currentMeta = (user?.user_metadata as Record<string, any>) || {};
+        const phoneTrimmed = formData.phone.trim();
+        const nextMeta: Record<string, any> = {
+          ...currentMeta,
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+        };
+        if (phoneTrimmed) {
+          nextMeta.phone = phoneTrimmed;
+        }
+        await supabase.auth.updateUser({ data: nextMeta });
       } catch (metaErr) {
         console.warn('Auth metadata update warning:', metaErr);
       }
@@ -162,7 +166,7 @@ const Profil = () => {
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ emoji: nextEmoji ? nextEmoji : null, updated_at: new Date().toISOString() })
+        .update({ emoji: nextEmoji ? nextEmoji : null })
         .eq('user_id', user.id);
       if (error) throw error;
 
@@ -555,6 +559,10 @@ const Profil = () => {
                     onClick={() => navigate('/pricing')}
                     className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-full text-white bg-accent hover:bg-[#03BB26]/85"
                   >
+                    <span className="inline-flex items-center bg-white/20 text-white text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">
+                      <Zap size={14} className="mr-1" />
+                      Premium
+                    </span>
                     Je m’abonne à top ECOS Premium
                   </button>
                 </div>
