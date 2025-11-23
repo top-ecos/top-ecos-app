@@ -328,7 +328,7 @@ const Ranking = () => {
               <div className="mb-6">
                 <Alert className="bg-white border-blue-200 text-blue-700">
                   <AlertDescription>
-                    Classement provisoire, finissez {3 - (myRow.completed_ranked_tests ?? 0)} stations ranked pour vous classer
+                    Classement provisoire, termine les 3 stations classées pour entrer dans le classement
                   </AlertDescription>
                 </Alert>
               </div>
