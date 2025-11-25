@@ -1,3 +1,6 @@
+--- START OF FILE EvaluationResults.tsx ---
+
+
 import { CheckCircle, MessageSquare, Trophy, TrendingUp } from "lucide-react";
 import { ScoreCard } from "./evaluation/ScoreCard";
 import { ActionsList } from "./evaluation/ActionsList";
