@@ -112,12 +112,27 @@ const Pricing = () => {
                 return;
             }
 
+            // 2. 👇 ADD THIS: Capture the Rewardful ID
+            let clientReferenceId = undefined;
+            if (window.Rewardful && window.Rewardful.referral) {
+                console.log('✅ Rewardful referral detected:', window.Rewardful.referral);
+                clientReferenceId = window.Rewardful.referral;
+            } else {
+                console.log('ℹ️ No Rewardful referral detected (direct traffic).');
+            }
+
             console.log('DEBUG: Session found! User:', sessionData.session.user?.email);
             console.log('DEBUG: Proceeding to invoke Edge Function.');
 
             const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-                body: { priceId, mode },
+                // 3. 👇 PASS IT HERE inside the body
+                body: { 
+                    priceId, 
+                    mode, 
+                    client_reference_id: clientReferenceId 
+                },
             });
+
             if (error) throw new Error(error.message);
             const url = (data as any)?.url as string | undefined;
             if (!url) throw new Error('Could not retrieve the checkout URL.');
@@ -139,21 +154,14 @@ const Pricing = () => {
                         </h1>
                     </div>
 
-                    {/* Align pricing cards to the top across breakpoints */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_360px] xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_400px] gap-6 lg:gap-8 items-start lg:items-start">
                         {pricingTiers.map((plan) => (
                             <div 
                                 key={plan.title} 
-                                // PHOENIX: Removed h-full to let content define the height. Added a transition for a smoother hover effect.
                                 className={`relative flex flex-col bg-white p-8 rounded-2xl border transition-all duration-300 ${plan.isHighlighted 
                                     ? 'border-2 border-[var(--accent)] shadow-lg transform will-change-transform hover:scale-[1.02] hover:shadow-xl z-10 hover:z-20' 
                                     : (plan.title === 'Gratuit' ? 'border-[#E0E0E0]' : 'border-gray-200')}`}
                             >
-                                {/* Removed "Le plus populaire" badge rendering */}
-                                
-                                {/* Premium image removed from UI */}
-                                
-                                {/* Align title/price/subtitle/footnote across cards */}
                                 <div className="min-h-[140px] md:min-h-[154px] flex flex-col justify-start">
                                     <h3 className={`text-2xl font-semibold ${plan.title === 'Gratuit' ? 'text-[#707070]' : (plan.isHighlighted ? 'text-[var(--accent)]' : 'text-text')}`}>{plan.title}</h3>
                                     <div className="flex items-baseline gap-1 my-4">
@@ -166,7 +174,6 @@ const Pricing = () => {
                                     {plan.footnote && <p className={`text-xs mt-8 ${plan.title === 'Gratuit' ? 'text-[#707070]' : 'text-gray-500'}`}>{plan.footnote}</p>}
                                 </div>
                                 
-                                {/* Spacer preserved without visible divider */}
                                 <div className="mt-3 mb-4" aria-hidden />
                                 
                                 <ul className="space-y-3 leading-relaxed text-base flex-1">
