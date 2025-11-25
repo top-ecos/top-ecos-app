@@ -1,4 +1,3 @@
-
 import { CheckCircle, MessageSquare, Trophy, TrendingUp } from "lucide-react";
 import { ScoreCard } from "./evaluation/ScoreCard";
 import { ActionsList } from "./evaluation/ActionsList";
@@ -67,6 +66,12 @@ const EvaluationResults = ({ result, stationTitle, stationId }: EvaluationResult
     };
   }, [user?.id, stationId]);
 
+  // Helper to convert text color (text-green-600) to background color (bg-green-600) for the gauge
+  const getProgressColor = (score: number, max: number) => {
+    const colorClass = getScoreColor(score, max);
+    return colorClass ? colorClass.replace('text-', 'bg-') : undefined;
+  };
+
   return (
     <div className="space-y-6">
       {/* Synthèse en haut */}
@@ -76,6 +81,8 @@ const EvaluationResults = ({ result, stationTitle, stationId }: EvaluationResult
           score={result.score_clinique}
           maxScore={maxClinicalScore}
           scoreColor={getScoreColor(result.score_clinique, maxClinicalScore)}
+          // Pass the converted background color for the progress bar
+          progressColor={getProgressColor(result.score_clinique, maxClinicalScore)}
           badgeColor={getScoreBadgeColor(result.score_clinique, maxClinicalScore)}
           additionalInfo={`${result.actions_reussies.length} actions réussies`}
         />
@@ -85,6 +92,7 @@ const EvaluationResults = ({ result, stationTitle, stationId }: EvaluationResult
           score={result.score_communication}
           maxScore={maxCommunicationScore}
           scoreColor={getScoreColor(result.score_communication, maxCommunicationScore)}
+          progressColor={getProgressColor(result.score_communication, maxCommunicationScore)}
           badgeColor={getScoreBadgeColor(result.score_communication, maxCommunicationScore)}
           additionalInfo={`${Object.keys(result.communication_details).length} compétences évaluées`}
         />
@@ -94,6 +102,7 @@ const EvaluationResults = ({ result, stationTitle, stationId }: EvaluationResult
           score={result.note_finale}
           maxScore={20}
           scoreColor={getScoreColor(result.note_finale, 20)}
+          progressColor={getProgressColor(result.note_finale, 20)}
           badgeColor={getScoreBadgeColor(result.note_finale, 20)}
           description={performanceLevel.level}
           isPrimary={true}
