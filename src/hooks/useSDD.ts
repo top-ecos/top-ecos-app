@@ -187,14 +187,27 @@ export const useSddFiltering = (
   const applyFilters = useCallback(() => {
     let filtered = [...sddList];
 
-    // Search by title, id, item_EDN
+    // Search by title, ids, and EDN (with numeric normalization for SDD official id)
     if (searchValue) {
-      const q = searchValue.toLowerCase();
-      filtered = filtered.filter((sdd) =>
-        (sdd.name ?? "").toLowerCase().includes(q) ||
-        (sdd.sdd_id ?? "").toLowerCase().includes(q) ||
-        (sdd.item_EDN ?? "").toLowerCase().includes(q)
-      );
+      const qRaw = searchValue.trim().toLowerCase();
+      const normalizeNum = (val: string) => val.replace(/\D/g, '').replace(/^0+/, '');
+      const qNum = normalizeNum(qRaw);
+
+      filtered = filtered.filter((sdd) => {
+        const name = (sdd.name ?? "").toLowerCase();
+        const itemEdn = (sdd.item_EDN ?? "").toLowerCase();
+        const officialRaw = (sdd.official_id ?? "").toLowerCase();
+        const officialNum = normalizeNum(officialRaw);
+
+        const matchesText =
+          name.includes(qRaw) ||
+          itemEdn.includes(qRaw) ||
+          officialRaw.includes(qRaw);
+
+        const matchesNumber = qNum !== "" && officialNum.includes(qNum);
+
+        return matchesText || matchesNumber;
+      });
     }
 
     // Status (done/todo) via caller-provided completion fn (now expects string)

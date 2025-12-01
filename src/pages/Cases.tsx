@@ -245,7 +245,7 @@ const Cases = () => {
               <div className="flex flex-col gap-2">
                 <span className="text-sm italic text-subtext">Mots-clés</span>
                 <SearchInput
-                  placeholder="Toux, ictère, méléna…"
+                  placeholder="Toux, ictère, méléna, SDD 072…"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
