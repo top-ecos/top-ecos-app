@@ -1,0 +1,61 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+export async function fetchEvaluationData(sddId) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  // Récupération des données d'évaluation de la station
+  const { data: evaluationData, error: evalError } = await supabase.from('sdds').select('*').eq('sdd_id', sddId).maybeSingle();
+  if (evalError) {
+    return {
+      data: null,
+      communicationSkills: [],
+      error: evalError
+    };
+  }
+  if (!evaluationData) {
+    return {
+      data: null,
+      communicationSkills: [],
+      error: null
+    };
+  }
+  // Récupération des IDs des aptitudes de communication pour cette station
+  const communicationIds = [
+    evaluationData.aptitude_communication_id_1,
+    evaluationData.aptitude_communication_id_2,
+    evaluationData.aptitude_communication_id_3,
+    evaluationData.aptitude_communication_id_4,
+    evaluationData.aptitude_communication_id_5
+  ].filter((id)=>id !== null && id !== undefined).map((id)=>parseInt(id, 10)).filter((id)=>!isNaN(id));
+  let communicationSkills = [];
+  if (communicationIds.length > 0) {
+    const { data: skillsData, error: skillsError } = await supabase.from('SDD_Type_A_Eval_2_MVP').select('*').in('aptitude_communication_id', communicationIds);
+    if (skillsError) {
+      console.error('Error fetching communication skills:', skillsError);
+      return {
+        data: evaluationData,
+        communicationSkills: [],
+        error: skillsError
+      };
+    }
+    communicationSkills = skillsData || [];
+  }
+  return {
+    data: evaluationData,
+    communicationSkills,
+    error: null
+  };
+}
+export function buildExpectedActions(evaluationData) {
+  const expectedActions = [];
+  // Récupération de toutes les actions cliniques attendues (1 à 15)
+  for(let i = 1; i <= 15; i++){
+    const actionKey = `aptitude_clinique_action_${i}`;
+    const action = evaluationData[actionKey];
+    if (action && action.trim()) {
+      expectedActions.push(action);
+    }
+  }
+  return expectedActions;
+}
+

@@ -28,10 +28,14 @@ export const useEvaluation = (caseData: any, messages: Message[]) => {
         content: m.content
       }));
 
-      // Choisir la bonne Edge Function selon le type de station
+      // Choisir la bonne Edge Function selon le type de station et l'environnement
+      const useGPT5 = import.meta.env.VITE_USE_GPT5_EVALUATION === 'true';
+
       const functionName = caseData.Type_de_station === 'Sèche' 
-        ? 'evaluate-performance-seche' 
-        : 'evaluate-performance';
+        ? (useGPT5 ? 'evaluate-performance-seche-dev' : 'evaluate-performance-seche')
+        : (useGPT5 ? 'evaluate-performance-dev' : 'evaluate-performance');
+
+      console.log(`Using evaluation function: ${functionName} (GPT-5.1: ${useGPT5})`);
 
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
