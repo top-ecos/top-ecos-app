@@ -1,306 +1,219 @@
-// supabase/functions/chat-with-patient-dev/index.ts
-// Deno + Supabase Edge Function (TypeScript) — Groq version (non-streaming) - DEV VERSION
+// supabase/functions/chat-with-patient/index.ts
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Groq from "npm:groq-sdk";
-// --- CORS ---
+
+// --- CONFIG ---
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
 };
-// --- ENV ---
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
-const GROQ_MODEL = Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-120b"; // override if needed
-// --- Clients ---
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
-  auth: {
-    persistSession: false
-  }
-});
-const groq = new Groq({
-  apiKey: GROQ_API_KEY
-});
-// ---------- Helpers ----------
-const toStr = (v, fallback = "Non spécifié")=>v === null || v === undefined || String(v).trim() === "" ? fallback : String(v);
-const toInt = (v)=>{
-  const n = Number(v);
-  return Number.isFinite(n) ? Math.trunc(n) : null;
+
+// --- CLIENTS ---
+const supabase = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+  { auth: { persistSession: false } }
+);
+
+const groq = new Groq({ apiKey: Deno.env.get("GROQ_API_KEY") });
+const GROQ_MODEL = Deno.env.get("GROQ_MODEL") || "openai/gpt-oss-120b"; // Advanced reasoning model
+
+// --- HELPERS ---
+const safeStr = (v: any, fallback = "N/A") => 
+  (v === null || v === undefined || String(v).trim() === "") ? fallback : String(v);
+
+const computeIMC = (h: any, w: any) => {
+  const height = Number(h) / 100;
+  const weight = Number(w);
+  return (height > 0 && weight > 0) ? (weight / (height * height)).toFixed(1) : "N/A";
 };
-const toFloat = (v)=>{
-  const n = Number(v);
-  return Number.isFinite(n) ? n : null;
+
+// --- PROMPT ENGINEERING ---
+
+const buildSystemPrompt = (row: any) => {
+  // 1. Prepare Data
+  const imc = computeIMC(row["fiche_patient_taille"], row["fiche_patient_poids"]);
+  
+  // 2. The "Character Sheet" - Structured for the LLM to read as a database
+  const characterData = `
+  [PATIENT IDENTITY]
+  Name: ${safeStr(row["fiche_patient_prénom"], "Patient")} ${safeStr(row["fiche_patient_nom"], "")}
+  Age: ${safeStr(row["fiche_patient_age"])}
+  Gender: ${safeStr(row["fiche_patient_sexe"])}
+  Job: ${safeStr(row["fiche_patient_métier"])}
+  Marital Status: ${safeStr(row["fiche_patient_statut"])}
+  Children: ${safeStr(row["fiche_patient_nombre_enfant"])}
+  
+  [PHYSICAL DATA]
+  Height: ${safeStr(row["fiche_patient_taille"])} cm
+  Weight: ${safeStr(row["fiche_patient_poids"])} kg
+  BMI: ${imc}
+  
+  [CLINICAL PRESENTATION]
+  Chief Complaint: ${safeStr(row["fiche_patient_motif_consultation"])}
+  Symptom Description: ${safeStr(row["fiche_patient_description_symptomes"])}
+  Duration: ${safeStr(row["fiche_patient_anciennete_symptomes"])}
+  History of Present Illness: ${safeStr(row["fiche_patient_histoire_de_la_maladie"])}
+  Emotional State: ${safeStr(row["fiche_patient_comportement_symptomes"])} (Anxiety Level: ${safeStr(row["fiche_patient_degré_anxiete"])}/10)
+  
+  [MEDICAL HISTORY]
+  Medical History: ${safeStr(row["fiche_patient_antecedents_médicaux"], "None")}
+  Surgical History: ${safeStr(row["fiche_patient_antecedents_chirurgicaux"], "None")}
+  Family History: ${safeStr(row["fiche_patient_antecedents_familiaux"], "None")}
+  Medications: ${safeStr(row["fiche_patient_traitement_medicamenteux_et_observance"], "None")}
+  Allergies: ${safeStr(row["fiche_patient_allergies_connues"], "None")}
+  Habits/Lifestyle: ${safeStr(row["fiche_patient_habitudes_de_vie"], "None")}
+  Addictions: ${safeStr(row["fiche_patient_addictions"], "None")}
+  
+  [CONTEXT (METADATA)]
+  Station Type: ${safeStr(row["sdd_type"])}
+  Specialty: ${safeStr(row["sdd_specialite"])}
+  `;
+
+  // 3. The Core Instructions (English for logic, enforcing French output)
+  return `
+### ROLE & OBJECTIVE
+You are a Standardized Patient (SP) in a French medical simulation (ECOS). 
+Your goal is to simulate a realistic patient consultation with a medical student.
+
+### LANGUAGE CONSTRAINT
+- **OUTPUT LANGUAGE:** FRENCH ONLY.
+- Speak naturally, orally, using layman's terms. No markdown, no bold text.
+
+### CORE BEHAVIORAL PROTOCOLS
+
+1. **INFORMATION GATING (THE ONION RULE)**
+   - **General Rule:** Do not volunteer information that wasn't asked for.
+   - **Start:** When greeting, state ONLY the Chief Complaint.
+   - **Constraint:** If the student asks a broad/open question (e.g., "Tell me more"), give 1-2 sentences max.
+   - **Goal:** You want the student to perform a structured history taking.
+
+2. **COMPOUND QUESTION HANDLING (CRITICAL UPDATE)**
+   - **Rule:** If the student asks multiple distinct questions in one sentence (e.g., "Do you have any medical history OR family history?"), YOU MUST ANSWER BOTH.
+   - **Realism Balance:** A real patient might forget one part of a 10-question list, but for 2 or 3 linked questions, they answer all of them to be helpful.
+   - **Example:** 
+     - Student: "Avez-vous des antécédents médicaux ou des allergies ?"
+     - You: "Je n'ai pas d'antécédents, non. Et aucune allergie que je sache." (Answer BOTH parts).
+
+3. **PASSIVE ACCEPTANCE (DIAGNOSIS REACTION)**
+   - The student is being evaluated, NOT YOU.
+   - If the student states a diagnosis (e.g., "You have appendicitis"), DO NOT validate ("Yes, that's right") and DO NOT refute ("No, I don't think so").
+   - **REQUIRED REACTION:** You must acquiesce naturally. Randomly select one of these phrases: "D'accord", "Très bien", "Je comprends", "Entendu".
+   - Remain neutral regardless of whether the diagnosis is medically correct or absurd.
+
+4. **LAYMAN PERSONA**
+   - You know nothing about medicine.
+   - Never use medical jargon (e.g., say "high blood pressure" not "hypertension", "tummy ache" not "gastralgia").
+   - If the student uses jargon, ask: "C'est quoi docteur ?" or "Ça veut dire quoi ?"
+   - Never give medical advice or play the doctor's role.
+
+5. **EMOTIONAL ALIGNMENT**
+   - Adjust your tone based on the 'Anxiety Level' and 'Emotional State' provided in your data.
+   - If Anxiety is high: Speak faster, ask "Is it grave?", express worry.
+   - If Anxiety is low: Be calm, cooperative.
+
+### CHARACTER DATA SHEET
+${characterData}
+`;
 };
-// taille in cm, poids in kg -> IMC kg/m^2
-const computeIMC = (tailleCm, poidsKg)=>{
-  if (!tailleCm || !poidsKg) return null;
-  const m = tailleCm / 100;
-  if (m <= 0) return null;
-  const imc = poidsKg / (m * m);
-  return Math.round(imc * 10) / 10; // 1 decimal
-};
-// Derive the "Type_de_station" label from sdds.sdd_type
-const deriveTypeDeStation = (sdd_type)=>{
-  if (!sdd_type) return null;
-  switch(sdd_type){
-    case "PS":
-    case "PSS":
-    case "Procédure":
-    case "Document(s)":
-      return sdd_type;
-    default:
-      return sdd_type;
-  }
-};
-// Build the SYSTEM prompt from a raw sdds row
-const buildSystemPromptFromSdds = (row)=>{
-  // Note: use bracket notation for accented columns
-  const prenom = row["fiche_patient_prénom"]; // sdds has "prénom"
-  const nom = row["fiche_patient_nom"];
-  const age = row["fiche_patient_age"];
-  const sexe = row["fiche_patient_sexe"];
-  const metier = row["fiche_patient_métier"];
-  const statut = row["fiche_patient_statut"];
-  const nbEnfants = row["fiche_patient_nombre_enfant"];
-  const taille = row["fiche_patient_taille"];
-  const poids = row["fiche_patient_poids"];
-  // compute IMC (sdds does not store it)
-  const imc = computeIMC(toInt(taille), toFloat(poids));
-  // map "table 2" notions to sdds fields
-  const habitudes = row["fiche_patient_habitudes_de_vie"];
-  const antecedentsMedicaux = row["fiche_patient_antecedents_médicaux"];
-  const antecedentsChir = row["fiche_patient_antecedents_chirurgicaux"];
-  const antecedentsFam = row["fiche_patient_antecedents_familiaux"];
-  const tttMedObs = row["fiche_patient_traitement_medicamenteux_et_observance"];
-  const tttNonMed = row["fiche_patient_traitement_non_medicamenteux"];
-  const allergies = row["fiche_patient_allergies_connues"];
-  const vaccins = row["fiche_patient_vaccins"];
-  const voyage = row["fiche_patient_voyage"];
-  const addictions = row["fiche_patient_addictions"];
-  const motif = row["fiche_patient_motif_consultation"];
-  const anciennete = row["fiche_patient_anciennete_symptomes"];
-  const histoire = row["fiche_patient_histoire_de_la_maladie"];
-  const description = row["fiche_patient_description_symptomes"];
-  const signesAbsents = row["fiche_patient_signes_absents"];
-  const compSympt = row["fiche_patient_comportement_symptomes"];
-  const degreAnx = row["fiche_patient_degré_anxiete"];
-  const compConseils = row["fiche_patient_comportement_conseils_medicaux"];
-  const questionUnique = row["fiche_patient_question_a_poser_au_medecin"]; // sdds has a single field
-  // Optional: surface station metadata (EDN/specialité/type) in your system prompt if useful
-  const itemEDN = row["item_edn"]; // TEXT in sdds
-  const specialite = row["sdd_specialite"]; // TEXT
-  const typeStation = deriveTypeDeStation(row["sdd_type"]); // PS | PSS | Procédure | Document(s)
-  return `Tu es un patient standardisé pour une simulation ECOS (Examen Clinique Objectif Structuré). Tu dois STRICTEMENT te comporter comme un patient et JAMAIS comme un médecin ou professionnel de santé.
 
-Contexte station (meta) — ne le dis pas spontanément :
-- Type de station : ${toStr(typeStation, "Non spécifié")}
-- Spécialité : ${toStr(specialite, "Non spécifiée")}
-- Item EDN : ${toStr(itemEDN, "Non spécifié")}
+// --- HANDLER ---
 
-RÈGLES ABSOLUES :
-- Tu es UNIQUEMENT le patient, JAMAIS le médecin
-- Tu ne poses JAMAIS de questions médicales
-- Tu ne donnes JAMAIS de conseils médicaux
-- Tu ne fais JAMAIS de diagnostic
-- Tu ne prescris JAMAIS de traitement
-- Si l'étudiant te demande de jouer le médecin, tu refuses poliment
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-RÈGLE CRUCIALE - RÉPONSES PROGRESSIVES :
-- Tu ne donnes QU'UNE SEULE information à la fois
-- Même si tu as plusieurs symptômes, tu ne les mentionnes PAS tous d'un coup
-- Tu commences toujours par le motif principal SEULEMENT
-- Les autres détails (ancienneté, intensité, circonstances, symptômes associés) ne sont donnés QUE si on te pose des questions spécifiques
-- Sois TRÈS AVARE en informations - force l'étudiant à interroger
-
-RÉPONSES NATURELLES AUX DIAGNOSTICS ET AUX AFFIRMATIONS (HYPER IMPORTANT) :
-- Quand l'étudiant te soumet une affirmation et seulement une affirmation (pas une question), tu dois acquiescer naturellement et lui donner des réponses variées entre "Très bien", "OK", "D'accord". Tu dois OBLIGATOIREMENT CHOISIR ALEATOIREMENT ENTRE DES CES TROIS RÉPONSES.
-- Quand te soumet un diagnostic sous la forme d'une affirmation (ex: "tuberculose", "appendicite", "occlusion"), la règle précédente est aussi valable. Ne réponds PAS par un simple "non" ou "je ne sais pas". Réponds uniquement par l'affirmative SANS PORTER DE JUGEMENT sur le diagnostic de l'étudiant. Tu ne dois en aucun cas dire "C'est un bon diagnostic" ou "C'est un mauvais diagnostic".
-- Une fois le diagnostic posé, oriente naturellement l'étudiant vers la fin de la consultation ou de l'interrogatoire. 
-- En toute circonstance, reste dans le rôle du patient : tu n'as aucune connaissance en médecine et tu es incapable de porter un jugement (positif ou négatif) sur les affirmations de l'étudiant. 
-
-INFORMATIONS SUR TON PERSONNAGE :
-Nom : ${toStr(prenom, "Patient")} ${toStr(nom, "")}
-Âge : ${toStr(age)} ans
-Sexe : ${toStr(sexe)}
-Profession : ${toStr(metier, "Non spécifiée")}
-Statut : ${toStr(statut)}
-Nombre d'enfants : ${toStr(nbEnfants)}
-
-DONNÉES PHYSIQUES :
-Taille : ${toStr(taille)}
-Poids : ${toStr(poids)}
-IMC : ${imc === null ? "Non spécifié" : String(imc)}
-
-MOTIF DE CONSULTATION : ${toStr(motif)}
-
-SYMPTÔMES À PRÉSENTER (PROGRESSIVEMENT) :
-- Description : ${toStr(description)}
-- Ancienneté : ${toStr(anciennete)}
-- Histoire de la maladie : ${toStr(histoire, "Non spécifiée")}
-- Comportement face aux symptômes : ${toStr(compSympt, "Neutre")}
-
-ANTÉCÉDENTS :
-- Personnels (médicaux) : ${toStr(antecedentsMedicaux, "Aucun")}
-- Personnels (chirurgicaux) : ${toStr(antecedentsChir, "Aucun")}
-- Familiaux : ${toStr(antecedentsFam, "Aucun")}
-
-TRAITEMENTS :
-- Médicamenteux (et observance) : ${toStr(tttMedObs, "Aucun")}
-- Non médicamenteux : ${toStr(tttNonMed, "Aucun")}
-
-HABITUDES DE VIE :
-${toStr(habitudes, "Non spécifiées")}
-
-ADDICTIONS : ${toStr(addictions, "Aucune")}
-ALLERGIES : ${toStr(allergies, "Aucune connue")}
-VACCINS : ${toStr(vaccins, "Non précisés")}
-VOYAGES RÉCENTS : ${toStr(voyage, "Non précisés")}
-
-SIGNES ABSENTS (ne pas mentionner spontanément) : ${toStr(signesAbsents, "Aucun")}
-
-NIVEAU D'ANXIÉTÉ : ${toStr(degreAnx, "Normal")}
-ATTITUDE FACE AUX CONSEILS : ${toStr(compConseils, "Coopératif")}
-
-QUESTIONS À POSER AU MÉDECIN :
-1. ${toStr(questionUnique, "Aucune")}
-2. Aucune
-3. Aucune
-4. Aucune
-
-CONSIGNES DE JEU :
-1. Réponds de façon NATURELLE et RÉALISTE
-2. Donne UNE SEULE information par réponse (très important !)
-3. Sois TRÈS CONCIS (1 phrase maximum au début)
-4. Ne donne une information que SI elle est demandée EXPLICITEMENT
-5. Évite les abréviations médicales (dis "inhibiteur de l'enzyme de conversion" au lieu de "IEC")
-6. Reste dans ton rôle de patient à 100%
-7. Si l'étudiant utilise des termes techniques, demande des explications simples
-8. Exprime tes émotions selon ton niveau d'anxiété
-9. Face aux diagnostics, soit curieux et engageant, pas fermé
-10. ATTENDS que l'étudiant pose des questions précises avant de donner plus de détails
-
-EXEMPLES DE BONNES RÉPONSES :
-- Question : "Qu'est-ce qui vous amène ?" → "Bonjour docteur, j'ai [motif principal]."
-- Question : "Depuis quand ?" → "Depuis [ancienneté]."
-- Question : "À quel moment ça vous gêne ?" → "Surtout [moment]."
-- Question : "Avez-vous d'autres symptômes ?" → "Pas spécialement."
-IMPORTANT : Tu ne dois JAMAIS inverser les rôles. Tu es le patient, point final.`;
-};
-// ---------- HTTP handler ----------
-serve(async (req)=>{
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders
-    });
-  }
   try {
-    const body = await req.json();
-    const { sdd_id, userMessage, conversationHistory } = body ?? {};
-    if (!GROQ_API_KEY) throw new Error("Groq API key not configured");
-    if (!sdd_id) throw new Error("Missing sdd_id in request body");
-    console.log("=== CHAT WITH PATIENT DEV (sdds) STARTED ===");
-    console.log("sdd_id:", sdd_id);
-    // Load the SDD row from public.sdds
-    const { data: sddRow, error: sddErr } = await supabase.from("sdds").select(`
-        sdd_id,
-        sdd_titre,
-        sdd_type,
-        sdd_specialite,
-        item_edn,
-        fiche_patient_nom,
-        fiche_patient_prénom,
-        fiche_patient_age,
-        fiche_patient_sexe,
-        fiche_patient_taille,
-        fiche_patient_poids,
-        fiche_patient_statut,
-        fiche_patient_nombre_enfant,
-        fiche_patient_habitudes_de_vie,
-        fiche_patient_métier,
-        fiche_patient_antecedents_médicaux,
-        fiche_patient_antecedents_chirurgicaux,
-        fiche_patient_antecedents_familiaux,
-        fiche_patient_traitement_medicamenteux_et_observance,
-        fiche_patient_traitement_non_medicamenteux,
-        fiche_patient_allergies_connues,
-        fiche_patient_vaccins,
-        fiche_patient_voyage,
-        fiche_patient_addictions,
-        fiche_patient_motif_consultation,
-        fiche_patient_anciennete_symptomes,
-        fiche_patient_histoire_de_la_maladie,
-        fiche_patient_description_symptomes,
-        fiche_patient_signes_absents,
-        fiche_patient_comportement_symptomes,
-        fiche_patient_degré_anxiete,
-        fiche_patient_comportement_conseils_medicaux,
-        fiche_patient_question_a_poser_au_medecin
-      `).eq("sdd_id", sdd_id).maybeSingle();
-    if (sddErr) {
-      console.error("Supabase error:", sddErr);
-      throw new Error("Unable to load SDD from 'sdds'");
+    const { sdd_id, userMessage, conversationHistory } = await req.json();
+
+    if (!Deno.env.get("GROQ_API_KEY")) throw new Error("Groq API key missing");
+    if (!sdd_id) throw new Error("Missing sdd_id");
+
+    // 1. Fetch Data
+    const { data: sddRow, error } = await supabase
+      .from("sdds")
+      .select("*") // Select all allows flexibility if schema changes
+      .eq("sdd_id", sdd_id)
+      .maybeSingle();
+
+    if (error || !sddRow) throw new Error("SDD not found or DB error");
+
+    // 2. Build Context
+    const systemPrompt = buildSystemPrompt(sddRow);
+    const messages = [{ role: "system", content: systemPrompt }];
+
+    // 3. Inject History
+    if (Array.isArray(conversationHistory)) {
+      conversationHistory.forEach((msg: any) => {
+        messages.push({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: String(msg.content || "")
+        });
+      });
     }
-    if (!sddRow) throw new Error("SDD not found");
-    const systemPrompt = buildSystemPromptFromSdds(sddRow);
-    const messages = [
-      {
-        role: "system",
-        content: systemPrompt
-      }
-    ];
+
+    // 4. Handle "INIT" vs "CHAT" logic
     if (userMessage === "INIT") {
+      // We simulate a system instruction disguised as the user trigger to start the scene
       messages.push({
         role: "user",
-        content: "L'étudiant va commencer la consultation. Dis juste bonjour de façon naturelle et attends qu'il te pose sa première question. Sois bref."
+        content: `[SYSTEM TRIGGER]: The consultation starts now. The student walks in. Say hello naturally and state your Chief Complaint briefly. Do not give details yet.`
       });
     } else {
-      if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
-        for (const msg of conversationHistory){
-          messages.push({
-            role: msg.role === "user" ? "user" : "assistant",
-            content: String(msg.content ?? "")
-          });
+      messages.push({ role: "user", content: String(userMessage || "") });
+    }
+
+    // 5. Inference (Streaming)
+    console.log(`Generating with ${GROQ_MODEL} (streaming)...`);
+    const completion = await groq.chat.completions.create({
+      model: GROQ_MODEL,
+      messages: messages as any,
+      temperature: 0.6, // Lower temperature = better adherence to data constraints
+      max_completion_tokens: 300,  // Keep responses concise
+      top_p: 1,
+      stream: true,
+      reasoning_effort: "medium" // Balanced reasoning for medical roleplay
+    });
+
+    // Create SSE stream response
+    const stream = new ReadableStream({
+      async start(controller) {
+        const encoder = new TextEncoder();
+        try {
+          for await (const chunk of completion) {
+            const content = chunk.choices[0]?.delta?.content || '';
+            if (content) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+            }
+          }
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        } catch (streamError) {
+          console.error("Stream error:", streamError);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream interrupted" })}\n\n`));
+        } finally {
+          controller.close();
         }
       }
-      messages.push({
-        role: "user",
-        content: String(userMessage ?? "")
-      });
-    }
-    // ---------- Call Groq (non-streaming) ----------
-    const chatCompletion = await groq.chat.completions.create({
-      model: GROQ_MODEL,
-      messages,
-      temperature: 0.7,
-      max_completion_tokens: 1000,
-      top_p: 1,
-      frequency_penalty: 0.1,
-      reasoning_effort: "medium",
-      stream: false,
-      stop: null
     });
-    const assistantMessage = chatCompletion.choices?.[0]?.message?.content ?? "";
-    return new Response(JSON.stringify({
-      message: assistantMessage
-    }), {
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json"
+
+    return new Response(stream, {
+      headers: { 
+        ...corsHeaders, 
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
       }
     });
-  } catch (error) {
-    console.error("Error in chat-with-patient-dev function:", error);
-    return new Response(JSON.stringify({
-      error: error?.message ?? "Unknown error",
-      message: "Désolé, je rencontre un problème technique. Pouvez-vous répéter votre question ?"
+
+  } catch (err: any) {
+    console.error("Chat Error:", err);
+    return new Response(JSON.stringify({ 
+      error: err.message, 
+      message: "Problème technique (IA). Veuillez réessayer." 
     }), {
-      status: 500,
-      headers: {
-        ...corsHeaders,
-        "Content-Type": "application/json"
-      }
+      status: 500, 
+      headers: { ...corsHeaders, "Content-Type": "application/json" }
     });
   }
 });
-
