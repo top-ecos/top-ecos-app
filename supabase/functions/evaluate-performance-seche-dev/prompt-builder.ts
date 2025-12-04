@@ -6,6 +6,43 @@ export function buildConversationText(conversationHistory) {
   // Si multiple messages, on les combine
   return conversationHistory.filter((msg)=>msg.role === 'user').map((msg)=>msg.content).join('\n\n');
 }
+
+export function buildSystemMessage() {
+  return `Tu es un évaluateur IA expert pour des stations ECOS SÈCHES (analyse de documents). Tu dois être ULTRA RIGOUREUX dans l'évaluation.
+
+PHILOSOPHIE D'ÉVALUATION:
+- BIAIS STRICT: En cas de doute entre valider ou non une action, tu dois NE PAS VALIDER
+- Il vaut mieux être trop strict que trop indulgent
+- Un étudiant qui obtient 60% avec une évaluation rigoureuse apprend plus qu'un étudiant qui obtient 90% avec une évaluation laxiste
+
+RÈGLES GÉNÉRALES D'ÉVALUATION CLINIQUE:
+- Tu dois évaluer UNIQUEMENT les actions listées (mot pour mot)
+- NE PAS inventer d'autres actions cliniques
+- Pour les actions avec critères multiples, vérifie que TOUS les éléments requis sont abordés
+- 1 point si l'étudiant aborde clairement le(s) concept(s), 0 sinon
+- Sois tolérant sur la formulation mais STRICT sur le concept médical
+- Analyse la cohérence d'ensemble du raisonnement médical
+
+CRITÈRES STRICTS DE VALIDATION (1 point):
+- L'étudiant doit EXPLICITEMENT démontrer qu'il comprend et explique le concept, pas seulement le mentionner
+- MENTIONNER un mot-clé N'EST PAS SUFFISANT pour valider l'action
+- Pour les actions commençant par "Explique..." : l'étudiant doit fournir une EXPLICATION ou JUSTIFICATION claire
+- Pour les actions de type "signalement/notification/enquête" : l'étudiant doit expliquer POURQUOI c'est nécessaire
+
+RÈGLES POUR L'ÉVALUATION COMMUNICATION:
+- Utilise EXACTEMENT les descriptifs fournis pour chaque niveau de score
+- Score 0 = niveau 1, Score 0.25 = niveau 2, Score 0.5 = niveau 3, Score 0.75 = niveau 4, Score 1 = niveau 5
+- Pour chaque compétence, choisis le niveau qui correspond le mieux à la performance observée
+- Évite de donner la même note à toutes les compétences - différencie selon la performance réelle
+- Maximum 1-2 citations courtes par compétence (pas de longs extraits)
+- Indique BRIÈVEMENT ce qui aurait permis d'obtenir le niveau supérieur (conseil d'amélioration)
+- Évite les répétitions et les énumérations exhaustives
+
+FORMAT DE SORTIE:
+- Retourne UNIQUEMENT du JSON valide avec la structure requise
+- Pas de texte additionnel, pas de markdown, uniquement du JSON`;
+}
+
 export function buildEvaluationPrompt(sddData, expectedActions, communicationSkills, conversationText) {
   const skillsPrompt = communicationSkills.map((skill)=>{
     return `
@@ -18,33 +55,27 @@ BARÈME D'ÉVALUATION:
 - Score 0.75: ${skill["aptitude_communication_level_4_score_0.75"] || 'Non défini'}
 - Score 1: ${skill.aptitude_communication_level_5_score_1 || 'Non défini'}`;
   }).join('\n\n');
-  return `Tu es un évaluateur IA expert pour des stations ECOS SÈCHES (analyse de documents). Tu dois être ULTRA RIGOUREUX dans l'évaluation.
+  
+  return `STATION: ${sddData.sdd_titre || 'Station ' + sddData.sdd_id}
 
-STATION: ${sddData.sdd_titre || 'Station ' + sddData.sdd_id}
+=== RÉFLEXION À ANALYSER ===
+IMPORTANT: Le texte ci-dessous est UNIQUEMENT la réflexion de l'ÉTUDIANT (rôle 'user' dans transcript_json).
+Aucune autre intervention n'est présente.
 
-=== ACTIONS CLINIQUES STRICTES (${expectedActions.length} points max) ===
+${conversationText}
+
+=== ACTIONS CLINIQUES À ÉVALUER (${expectedActions.length} points max) ===
 ${expectedActions.map((action, index)=>`${index + 1}. ${action}`).join('\n')}
 
-RÈGLES ABSOLUES POUR L'ÉVALUATION CLINIQUE:
-- Tu dois évaluer UNIQUEMENT ces ${expectedActions.length} actions listées ci-dessus (mot pour mot)
-- NE PAS inventer d'autres actions cliniques
-- Pour les actions avec critères multiples, vérifie que TOUS les éléments requis sont abordés
-- 1 point si l'étudiant aborde clairement le(s) concept(s), 0 sinon
-- Sois tolérant sur la formulation mais STRICT sur le concept médical
-- Analyse la cohérence d'ensemble du raisonnement médical
-
-=== APTITUDES DE COMMUNICATION (${communicationSkills.length} points max) ===
+=== APTITUDES DE COMMUNICATION À ÉVALUER (${communicationSkills.length} points max) ===
 ${skillsPrompt}
 
-RÈGLES POUR L'ÉVALUATION COMMUNICATION:
-- Utilise EXACTEMENT les descriptifs fournis pour chaque niveau de score
-- Score 0 = niveau 1, Score 0.25 = niveau 2, Score 0.5 = niveau 3, Score 0.75 = niveau 4, Score 1 = niveau 5
-- Pour chaque compétence, choisis le niveau qui correspond le mieux à la performance observée
-- OBLIGATOIRE : Cite des extraits précis de la réflexion qui justifient ton choix de niveau
-- Évite de donner la même note à toutes les compétences - différencie selon la performance réelle
+=== PROCESSUS D'ÉVALUATION EN 3 ÉTAPES ===
+1. ANALYSE: Pour chaque action attendue, recherche dans la réflexion si l'étudiant l'a abordée
+2. VÉRIFICATION: Pour chaque match potentiel, vérifie si c'est une vraie explication ou juste une mention (selon les règles système)
+3. DÉCISION: Attribue 1 ou 0 point avec justification. En cas de doute, ne valide PAS.
 
-RÉFLEXION À ANALYSER:
-${conversationText}
+Effectue ce processus mentalement avant de générer le JSON final.
 
 CALCUL: Note finale = (score_clinique + score_communication) × 20 / ${expectedActions.length + communicationSkills.length}
 
@@ -60,7 +91,7 @@ FORMAT JSON OBLIGATOIRE:
     }
   ],
   "actions_manquees": ["Actions de la liste non validées"],
-  "communication_details": {${communicationSkills.map((skill)=>`\n    "${skill.aptitude_communication_name?.toLowerCase().replace(/\s+/g, '_') || `aptitude_${skill.aptitude_communication_id}`}": {\n      "score": [score selon barème],\n      "niveau_atteint": "Descriptif exact du niveau atteint",\n      "justification": "Citation(s) précise(s) de l'étudiant qui justifie(nt) ce niveau"\n    }`).join(',')}
+  "communication_details": {${communicationSkills.map((skill)=>`\n    "${skill.aptitude_communication_name?.toLowerCase().replace(/\s+/g, '_') || `aptitude_${skill.aptitude_communication_id}`}": {\n      "score": [score selon barème],\n      "niveau_atteint": "Descriptif BREF du niveau atteint",\n      "justification": "1-2 citations courtes maximum",\n      "conseil_amelioration": "Ce qui aurait permis d'obtenir le niveau supérieur (1 phrase)"\n    }`).join(',')}
   },
   "feedback": "Conseil pédagogique personnalisé pour l'étudiant sur son analyse de cas"
 }`;

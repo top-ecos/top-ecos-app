@@ -1,4 +1,4 @@
-export async function callOpenAI(prompt) {
+export async function callOpenAI(systemMessage, userPrompt) {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
     return {
@@ -22,29 +22,21 @@ export async function callOpenAI(prompt) {
           messages: [
             {
               role: 'system',
-              content: 'Tu es un évaluateur expert pour les stations ECOS sèches. Tu dois retourner UNIQUEMENT du JSON valide, sans aucun texte additionnel.'
+              content: systemMessage
             },
             {
               role: 'user',
-              content: prompt
+              content: userPrompt
             }
           ],
           temperature: 0.1,
-          response_format: { type: "json_object" },
-          reasoning: {
-            effort: "medium",
-            summary: "auto"
-          },
-          store: true,
-          include: [
-            "reasoning.encrypted_content",
-            "web_search_call.action.sources"
-          ]
+          response_format: { type: "json_object" }
         })
       });
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`OpenAI API error (attempt ${attempt}):`, response.status, errorText);
+        console.error(`OpenAI API error (attempt ${attempt}):`, response.status);
+        console.error('Full error response:', errorText);
         lastError = new Error(`OpenAI API error: ${response.status} - ${errorText}`);
         if (attempt < maxRetries) {
           await new Promise((resolve)=>setTimeout(resolve, 1000 * attempt));

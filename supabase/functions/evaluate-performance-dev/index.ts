@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateRequest, validateEnvironment } from './validation.ts';
 import { fetchEvaluationData, buildExpectedActions } from './data-fetcher.ts';
-import { buildConversationText, buildEvaluationPrompt } from './prompt-builder.ts';
+import { buildConversationText, buildEvaluationPrompt, buildSystemMessage } from './prompt-builder.ts';
 import { callOpenAI } from './openai-client.ts';
 import { validateAndCorrectScores, generateFallbackEvaluation } from './evaluation-calculator.ts';
 const corsHeaders = {
@@ -104,11 +104,12 @@ serve(async (req)=>{
     // Build conversation text and evaluation prompt
     console.log('=== BUILDING EVALUATION PROMPT ===');
     const conversationText = buildConversationText(requestBody.conversationHistory);
-    const evaluationPrompt = buildEvaluationPrompt(requestBody.sddData, expectedActions, communicationSkills, conversationText);
+    const systemMessage = buildSystemMessage();
+    const userPrompt = buildEvaluationPrompt(requestBody.sddData, expectedActions, communicationSkills, conversationText);
     console.log('Evaluation prompt built');
     // Call OpenAI API with retry logic
     console.log('=== CALLING OPENAI API (GPT-5.1) ===');
-    let { result, error } = await callOpenAI(evaluationPrompt);
+    let { result, error } = await callOpenAI(systemMessage, userPrompt);
     if (error || !result) {
       console.log('=== GENERATING FALLBACK EVALUATION ===');
       console.warn('OpenAI API failed, generating conservative fallback evaluation');

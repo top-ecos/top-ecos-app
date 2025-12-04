@@ -42,7 +42,7 @@ function validateEvaluationResult(result) {
   }
   return true;
 }
-export async function callOpenAI(prompt) {
+export async function callOpenAI(systemMessage, userPrompt) {
   const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -55,25 +55,23 @@ export async function callOpenAI(prompt) {
         model: 'gpt-5.1',
         messages: [
           {
+            role: 'system',
+            content: systemMessage
+          },
+          {
             role: 'user',
-            content: prompt
+            content: userPrompt
           }
         ],
         temperature: 0.2,
-        response_format: { type: "json_object" },
-        reasoning: {
-          effort: "medium",
-          summary: "auto"
-        },
-        store: true,
-        include: [
-          "reasoning.encrypted_content",
-          "web_search_call.action.sources"
-        ]
+        response_format: { type: "json_object" }
       })
     });
     if (!response.ok) {
       const error = await response.text();
+      console.error('OpenAI API Error Details:');
+      console.error('Status:', response.status);
+      console.error('Response:', error);
       return {
         result: null,
         error: `Erreur API OpenAI: ${response.status} - ${error}`

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-premium";
 import { Badge } from "@/components/ui/badge-premium";
 import { Button } from "@/components/ui/button-premium";
@@ -10,6 +10,7 @@ import { useResults } from "@/hooks/useResults";
 import { useSDD, SDD } from "@/hooks/useSDD";
 import { useStationProgress } from "@/hooks/useStationProgress";
 import { deriveTypeLabel } from "@/lib/station";
+import { getStationOfTheDay, getNextRecommendedStation, getDailySeed } from "@/lib/recommendation";
 import RecommendedSddSection from "@/components/RecommendedSddSection";
 import RankedSection from "@/components/RankedSection";
 import { Layout } from "@/components/Layout";
@@ -73,7 +74,7 @@ const Dashboard = () => {
   const { user } = useAuth();
   const { results, loading: resultsLoading } = useResults({ lite: true, limit: 5 });
   const { sddList, loading: sddLoading, error: sddError } = useSDD();
-  const { isStationCompleted, updateLastAttempt, loading: progressLoading } = useStationProgress() as any;
+  const { isStationCompleted, updateLastAttempt, loading: progressLoading, progressMap } = useStationProgress() as any;
   const navigate = useNavigate();
   const [startingStationId, setStartingStationId] = useState<string | null>(null);
 
@@ -133,20 +134,40 @@ const Dashboard = () => {
       const raw = localStorage.getItem('lastRecommendedSddV2');
       if (!raw) return null;
       const obj = JSON.parse(raw);
-      if (obj && obj.data && (Date.now() - obj.ts) < 12 * 60 * 60 * 1000) { // 12h TTL
+      const todaySeed = getDailySeed();
+      // Check if cache is from today (using seed) to enforce daily rotation
+      if (obj && obj.dateSeed === todaySeed && obj.data) {
         return obj.data as SDD;
       }
     } catch {}
     return null;
   });
 
-  // Prefer first non-completed SDD; fallback to first available among visible.
-  const recommendedSdd = visibleSdds.find((s) => !isStationCompleted(s.sdd_id)) || visibleSdds[0];
+  // Use the smart recommendation algorithm
+  const recommendedSdd = useMemo(() => {
+    if (!visibleSdds || visibleSdds.length === 0) return null;
+
+    const completedIds = new Set<string>();
+    if (progressMap) {
+      progressMap.forEach((val: any, key: string) => {
+        if (val.is_completed) completedIds.add(key);
+      });
+    }
+
+    const stationOfTheDay = getStationOfTheDay(visibleSdds);
+    return getNextRecommendedStation(visibleSdds, completedIds, stationOfTheDay);
+  }, [visibleSdds, progressMap]);
 
   useEffect(() => {
     if (recommendedSdd) {
       setHeroSdd(recommendedSdd);
-      try { localStorage.setItem('lastRecommendedSddV2', JSON.stringify({ ts: Date.now(), data: recommendedSdd })); } catch {}
+      try { 
+        localStorage.setItem('lastRecommendedSddV2', JSON.stringify({ 
+          ts: Date.now(), 
+          dateSeed: getDailySeed(),
+          data: recommendedSdd 
+        })); 
+      } catch {}
     }
   }, [recommendedSdd]);
 
