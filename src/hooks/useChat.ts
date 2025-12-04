@@ -149,11 +149,22 @@ export const useChat = (caseData: any) => {
         Type_de_station: caseData?.Type_de_station,
         type_de_station: caseData?.type_de_station,
       });
-      const functionName = normalizedType === 'PSS' ? 'chat-with-pss' : 'chat-with-patient';
-      if (import.meta.env.DEV) console.debug(`[chat] function=${functionName} type=${normalizedType}`);
+      
+      // Check if we should use dev versions
+      const useDevChat = import.meta.env.VITE_USE_DEV_CHAT === 'true';
+      
+      // Select function based on type and dev mode
+      let functionName: string;
+      if (normalizedType === 'PSS') {
+        functionName = useDevChat ? 'chat-with-pss-dev' : 'chat-with-pss';
+      } else {
+        functionName = useDevChat ? 'chat-with-patient-dev' : 'chat-with-patient';
+      }
+      
+      if (import.meta.env.DEV) console.debug(`[chat] function=${functionName} type=${normalizedType} dev=${useDevChat}`);
 
       // Different functions expect different data formats
-      const requestBody = functionName === 'chat-with-pss' 
+      const requestBody = functionName.includes('pss') 
         ? {
             sddData: caseData,
             userMessage: inputMessage,
