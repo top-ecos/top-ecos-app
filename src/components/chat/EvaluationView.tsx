@@ -26,7 +26,14 @@ const EvaluationView = ({
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">Résultats d'évaluation</h1>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-bold text-[#222223] truncate max-w-[60vw] sm:max-w-none">
+                {caseData.sdd_titre || `Station`}
+              </h1>
+              <p className="text-xs sm:text-sm text-[#707070] truncate">
+                {`SDD ${caseData?.official_id ?? caseData?.sdd_id}`}
+              </p>
+            </div>
 
             {/* Desktop controls */}
             <div className="hidden lg:flex items-center gap-3">
