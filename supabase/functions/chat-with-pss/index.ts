@@ -46,22 +46,85 @@ serve(async (req)=>{
         model: 'gpt-4o-mini',
         messages: messages,
         temperature: 0.7,
-        max_tokens: 500
+        max_tokens: 500,
+        stream: true
       })
     });
-    if (!response.ok) {
+    if (!response.ok || !response.body) {
       throw new Error(`OpenAI API error: ${response.status}`);
     }
-    const data = await response.json();
-    const pssResponse = data.choices[0].message.content;
-    console.log('✅ PSS response generated successfully');
-    return new Response(JSON.stringify({
-      message: pssResponse,
-      timestamp: new Date().toISOString()
-    }), {
+
+    // Stream OpenAI chunks to the client as SSE
+    const encoder = new TextEncoder();
+    const decoder = new TextDecoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        const reader = response.body!.getReader();
+        let buffer = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() ?? "";
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (!trimmed.startsWith('data:')) continue;
+
+              const data = trimmed.slice(5).trim();
+              if (data === '[DONE]') {
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                controller.close();
+                return;
+              }
+
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                }
+              } catch (e) {
+                console.error('SSE parse error:', e);
+              }
+            }
+          }
+
+          // Flush any remaining buffer (in case of trailing data without newline)
+          if (buffer.trim().startsWith('data:')) {
+            const data = buffer.trim().slice(5).trim();
+            if (data !== '[DONE]') {
+              try {
+                const parsed = JSON.parse(data);
+                const content = parsed.choices?.[0]?.delta?.content;
+                if (content) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+                }
+              } catch (e) {
+                console.error('SSE parse error (final buffer):', e);
+              }
+            }
+          }
+
+          controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+        } catch (streamErr) {
+          console.error('Stream error:', streamErr);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: "Stream interrupted" })}\n\n`));
+        } finally {
+          controller.close();
+        }
+      }
+    });
+
+    return new Response(stream, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'application/json'
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
       }
     });
   } catch (error) {
