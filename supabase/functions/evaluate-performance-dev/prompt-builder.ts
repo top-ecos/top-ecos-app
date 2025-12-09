@@ -48,6 +48,12 @@ RÈGLES POUR L'ÉVALUATION COMMUNICATION:
 - Indique BRIÈVEMENT ce qui aurait permis d'obtenir le niveau supérieur (conseil d'amélioration)
 - Évite les répétitions et les énumérations exhaustives de tous les éléments dits par l'étudiant
 
+MÉTHODE D'ÉVALUATION SYSTÉMATIQUE:
+- Tu DOIS analyser CHAQUE action attendue ligne par ligne
+- Pour CHAQUE action, tu DOIS générer un objet dans "analyse_detaillee"
+- NE SAUTE AUCUNE action de la liste fournie
+- Même si une action n'est pas validée, elle DOIT apparaître dans l'analyse avec statut "NON_VALIDÉ"
+
 FORMAT DE SORTIE:
 - Retourne UNIQUEMENT du JSON valide avec la structure requise
 - Pas de texte additionnel, pas de markdown, uniquement du JSON`;
@@ -81,12 +87,15 @@ ${expectedActions.map((action, index)=>`${index + 1}. ${action}`).join('\n')}
 === APTITUDES DE COMMUNICATION À ÉVALUER (${communicationSkills.length} points max) ===
 ${skillsPrompt}
 
-=== PROCESSUS D'ÉVALUATION EN 3 ÉTAPES ===
-1. ANALYSE: Pour chaque action attendue, recherche dans la conversation si l'étudiant l'a abordée
-2. VÉRIFICATION: Pour chaque match potentiel, vérifie si c'est une vraie explication ou juste une mention (selon les règles système)
-3. DÉCISION: Attribue 1 ou 0 point avec justification. En cas de doute, ne valide PAS.
+=== PROCESSUS D'ÉVALUATION SYSTÉMATIQUE LIGNE PAR LIGNE ===
+CRITIQUE: Tu DOIS analyser CHAQUE action de la liste, même si elle n'est pas validée.
+Pour CHAQUE action attendue (toutes les ${expectedActions.length} actions):
+1. ANALYSE: Recherche dans la conversation si l'étudiant l'a abordée
+2. VÉRIFICATION: Vérifie si c'est une vraie explication ou juste une mention (selon les règles système)
+3. DÉCISION: Attribue statut "VALIDÉ" ou "NON_VALIDÉ" avec justification. En cas de doute, ne valide PAS.
+4. GÉNÉRATION: Crée un objet dans "analyse_detaillee" pour cette action
 
-Effectue ce processus mentalement avant de générer le JSON final.
+IMPORTANT: Le tableau "analyse_detaillee" doit contenir EXACTEMENT ${expectedActions.length} objets (un par action).
 
 CALCUL: Note finale = (score_clinique + score_communication) × 20 / ${expectedActions.length + communicationSkills.length}
 
@@ -95,13 +104,16 @@ FORMAT JSON OBLIGATOIRE:
   "score_clinique": [nombre entier sur ${expectedActions.length}],
   "score_communication": [nombre avec granularité 0.25 sur ${communicationSkills.length}],
   "note_finale": [nombre sur 20, 2 décimales max],
-  "actions_reussies": [
+  "analyse_detaillee": [
     {
-      "action": "Action clinique exacte de la liste",
-      "extrait": "Citation exacte de l'étudiant qui valide cette action"
+      "action_id": [index de 0 à ${expectedActions.length - 1}],
+      "action_attendue": "Texte exact de l'action attendue",
+      "statut": "VALIDÉ" ou "NON_VALIDÉ",
+      "preuve": "Citation exacte de l'étudiant (si validé) ou chaîne vide",
+      "raison": "Court commentaire justifiant la décision (ex: 'Mentionné sans explication', 'Explication claire fournie')"
     }
+    // OBLIGATOIRE: Générer un objet pour CHAQUE action des ${expectedActions.length} actions attendues
   ],
-  "actions_manquees": ["Actions de la liste non validées"],
   "communication_details": {${communicationSkills.map((skill)=>`\n    "${skill.aptitude_communication_name?.toLowerCase().replace(/\s+/g, '_') || `aptitude_${skill.aptitude_communication_id}`}": {\n      "score": [score selon barème],\n      "niveau_atteint": "Descriptif BREF du niveau atteint",\n      "justification": "1-2 citations courtes maximum",\n      "conseil_amelioration": "Ce qui aurait permis d'obtenir le niveau supérieur (1 phrase)"\n    }`).join(',')}
   },
   "feedback": "Conseil pédagogique personnalisé pour l'étudiant"

@@ -85,16 +85,53 @@ export async function callOpenAI(systemMessage, userPrompt) {
     }
     try {
       const parsedResult = JSON.parse(evaluationResult);
-      // Validate the structure and scores
-      if (!validateEvaluationResult(parsedResult)) {
-        console.error('Invalid evaluation result structure:', parsedResult);
+      
+      // ADAPTER PATTERN: Transform analyse_detaillee to frontend-compatible format
+      // The AI now returns a systematic line-by-line analysis in analyse_detaillee
+      // We transform it back to actions_reussies/actions_manquees for backward compatibility
+      let transformedResult = parsedResult;
+      
+      if (parsedResult.analyse_detaillee && Array.isArray(parsedResult.analyse_detaillee)) {
+        console.log('Applying adapter transformation from analyse_detaillee to actions_reussies/actions_manquees');
+        console.log(`Total items in analyse_detaillee: ${parsedResult.analyse_detaillee.length}`);
+        
+        // Map VALIDÉ items to actions_reussies (Array of Objects)
+        const actionsReussies = parsedResult.analyse_detaillee
+          .filter((item: any) => item.statut === "VALIDÉ")
+          .map((item: any) => ({
+            action: item.action_attendue,
+            extrait: item.preuve
+          }));
+        
+        // Map NON_VALIDÉ items to actions_manquees (Array of Strings)
+        const actionsManquees = parsedResult.analyse_detaillee
+          .filter((item: any) => item.statut === "NON_VALIDÉ")
+          .map((item: any) => item.action_attendue);
+        
+        console.log(`Transformed: ${actionsReussies.length} actions réussies, ${actionsManquees.length} actions manquées`);
+        
+        // Construct the final payload for the client (backward compatible)
+        transformedResult = {
+          score_clinique: parsedResult.score_clinique,
+          score_communication: parsedResult.score_communication,
+          note_finale: parsedResult.note_finale,
+          actions_reussies: actionsReussies,
+          actions_manquees: actionsManquees,
+          communication_details: parsedResult.communication_details,
+          feedback: parsedResult.feedback
+        };
+      }
+      
+      // Validate the structure and scores (now validates the transformed result)
+      if (!validateEvaluationResult(transformedResult)) {
+        console.error('Invalid evaluation result structure:', transformedResult);
         return {
           result: null,
           error: 'Structure d\'évaluation invalide retournée par l\'IA'
         };
       }
       return {
-        result: parsedResult,
+        result: transformedResult,
         error: null
       };
     } catch (parseError) {
