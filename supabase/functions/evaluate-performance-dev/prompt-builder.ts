@@ -1,9 +1,13 @@
 export function buildConversationText(conversationHistory) {
-  // CRITIQUE: Pour les stations PS/PSS, on ne doit évaluer QUE les interventions de l'étudiant
-  // JAMAIS les réponses du patient simulé (IA)
-  const studentMessages = conversationHistory.filter((msg)=>msg.role === 'user') // UNIQUEMENT les messages de l'étudiant
-  .map((msg)=>`ÉTUDIANT: ${msg.content}`).join('\n\n');
-  return studentMessages || "Aucune intervention de l'étudiant enregistrée.";
+  // Provide FULL conversation context for better evaluation
+  // Both student and patient/assistant messages are included
+  const fullConversation = conversationHistory
+    .map((msg) => {
+      const label = msg.role === 'user' ? 'ÉTUDIANT' : 'PATIENT/ASSISTANT';
+      return `${label}: ${msg.content}`;
+    })
+    .join('\n\n');
+  return fullConversation || "Aucune conversation enregistrée.";
 }
 
 export function buildSystemMessage() {
@@ -75,9 +79,9 @@ BARÈME D'ÉVALUATION:
   return `STATION: ${sddData.sdd_titre || 'Station ' + sddData.sdd_id}
 
 === CONVERSATION À ANALYSER ===
-IMPORTANT: Les messages ci-dessous sont UNIQUEMENT ceux de l'ÉTUDIANT (rôle 'user' dans transcript_json).
-Les réponses du patient simulé/personnel soignant (rôle 'assistant') ont été FILTRÉES et ne sont PAS présentes.
-Tu dois évaluer SEULEMENT ce que l'étudiant a dit, pas ce que le patient a répondu.
+IMPORTANT: La conversation complète est fournie ci-dessous avec les interventions de l'ÉTUDIANT et les réponses du PATIENT/ASSISTANT.
+Cette contextualisation te permet de mieux comprendre le déroulement de l'entretien.
+CRITIQUE: Tu dois évaluer UNIQUEMENT ce que l'ÉTUDIANT a dit ou demandé. Les réponses du patient ne comptent PAS pour valider les actions cliniques.
 
 ${conversationText}
 
