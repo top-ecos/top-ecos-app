@@ -22,7 +22,11 @@ export const useSecheEvaluation = (caseData: any) => {
       console.log('Starting seche evaluation for station:', caseData.sdd_id);
       console.log('Seche messages to evaluate:', conversationHistory);
       
-      const { data, error } = await supabase.functions.invoke('evaluate-performance-seche', {
+      const useGPT5 = import.meta.env.VITE_USE_GPT5_EVALUATION === 'true';
+      const functionName = useGPT5 ? 'evaluate-performance-seche-dev' : 'evaluate-performance-seche';
+      console.log(`Using seche evaluation function: ${functionName} (GPT-5.1: ${useGPT5})`);
+      
+      const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           sddData: caseData,
           conversationHistory: conversationHistory
