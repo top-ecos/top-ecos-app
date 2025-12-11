@@ -150,143 +150,102 @@ export const useChat = (caseData: any) => {
         type_de_station: caseData?.type_de_station,
       });
       
-      // Check if we should use dev versions (streaming enabled)
-      const useDevChat = import.meta.env.VITE_USE_DEV_CHAT === 'true';
+      // Select function based on type
+      const functionName = normalizedType === 'PSS' ? 'chat-with-pss' : 'chat-with-patient';
       
-      // Select function based on type and dev mode
-      let functionName: string;
-      if (normalizedType === 'PSS') {
-        functionName = useDevChat ? 'chat-with-pss-dev' : 'chat-with-pss';
-      } else {
-        functionName = useDevChat ? 'chat-with-patient-dev' : 'chat-with-patient';
+      if (import.meta.env.DEV) console.debug(`[chat] function=${functionName} type=${normalizedType}`);
+
+      // Both functions now use the same request format
+      const requestBody = {
+        sdd_id: caseData.sdd_id,
+        userMessage: inputMessage,
+        conversationHistory: conversationHistory
+      };
+
+      // Both functions use streaming SSE
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token;
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const functionUrl = `${supabaseUrl}/functions/v1/${functionName}`;
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`,
+          'apikey': supabaseAnonKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
       }
-      
-      if (import.meta.env.DEV) console.debug(`[chat] function=${functionName} type=${normalizedType} dev=${useDevChat}`);
 
-      // Different functions expect different data formats
-      const requestBody = functionName.includes('pss') 
-        ? {
-            sddData: caseData,
-            userMessage: inputMessage,
-            conversationHistory: conversationHistory
-          }
-        : {
-            sdd_id: caseData.sdd_id,
-            userMessage: inputMessage,
-            conversationHistory: conversationHistory
-          };
+      // Create placeholder assistant message for streaming
+      const assistantMessageId = (Date.now() + 1).toString();
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
 
-      // Dev functions use streaming SSE, production uses regular JSON response
-      if (useDevChat) {
-        // Streaming mode: use fetch with SSE
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-        
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const functionUrl = `${supabaseUrl}/functions/v1/${functionName}`;
-        
-        const response = await fetch(functionUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'apikey': supabaseAnonKey,
-          },
-          body: JSON.stringify(requestBody),
-        });
+      // Read SSE stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
 
-        if (!response.ok) {
-          throw new Error(`HTTP error: ${response.status}`);
-        }
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        // Create placeholder assistant message for streaming
-        const assistantMessageId = (Date.now() + 1).toString();
-        const assistantMessage: Message = {
-          id: assistantMessageId,
-          role: 'assistant',
-          content: '',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
 
-        // Read SSE stream
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let accumulatedContent = '';
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6).trim();
-                if (data === '[DONE]') {
-                  if (import.meta.env.DEV) console.debug('[chat] stream complete');
-                  break;
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data === '[DONE]') {
+                if (import.meta.env.DEV) console.debug('[chat] stream complete');
+                break;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  accumulatedContent += parsed.content;
+                  // Update message content progressively
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessageId 
+                      ? { ...msg, content: accumulatedContent }
+                      : msg
+                  ));
                 }
-                try {
-                  const parsed = JSON.parse(data);
-                  if (parsed.content) {
-                    accumulatedContent += parsed.content;
-                    // Update message content progressively
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === assistantMessageId 
-                        ? { ...msg, content: accumulatedContent }
-                        : msg
-                    ));
-                  }
-                  if (parsed.error) {
-                    console.error('Stream error:', parsed.error);
-                  }
-                } catch {
-                  // Ignore JSON parse errors for incomplete chunks
+                if (parsed.error) {
+                  console.error('Stream error:', parsed.error);
                 }
+              } catch {
+                // Ignore JSON parse errors for incomplete chunks
               }
             }
           }
         }
-
-        // Fallback if no content was streamed
-        if (!accumulatedContent) {
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId 
-              ? { ...msg, content: "Je n'ai pas bien compris. Peux-tu reformuler ?" }
-              : msg
-          ));
-        }
-
-        if (import.meta.env.DEV) console.debug('[chat] streaming message complete');
-      } else {
-        // Non-streaming mode: use supabase.functions.invoke
-        const { data, error } = await supabase.functions.invoke(functionName, {
-          body: requestBody
-        });
-
-        if (error) {
-          console.error('Chat edge error');
-          throw error;
-        }
-
-        const reply = typeof (data as any)?.message === 'string' && (data as any).message.trim() !== ''
-          ? (data as any).message
-          : "Je n'ai pas bien compris. Peux-tu reformuler ?";
-
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: reply,
-          timestamp: new Date()
-        };
-
-        if (import.meta.env.DEV) console.debug('[chat] add assistant message');
-        setMessages(prev => [...prev, assistantMessage]);
       }
+
+      // Fallback if no content was streamed
+      if (!accumulatedContent) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: "Je n'ai pas bien compris. Peux-tu reformuler ?" }
+            : msg
+        ));
+      }
+
+      if (import.meta.env.DEV) console.debug('[chat] streaming message complete');
     } catch (error) {
       console.error('Chat invocation failed');
       const errorMessage: Message = {
