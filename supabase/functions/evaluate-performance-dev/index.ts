@@ -120,12 +120,13 @@ serve(async (req)=>{
       result = validateAndCorrectScores(result, expectedActions.length, communicationSkills.length);
     }
     console.log('=== EVALUATION (GPT-5.1 DEV) COMPLETED SUCCESSFULLY ===');
+    console.log('=== FINAL SCORES (AFTER SERVER-SIDE VALIDATION) ===');
+    console.log(`Clinical: ${result.score_clinique}/${expectedActions.length}`);
+    console.log(`Communication: ${result.score_communication}/${communicationSkills.length}`);
+    console.log(`Final: ${result.note_finale}/20`);
+    console.log(`Actions validated: ${result.actions_reussies.length}`);
+    console.log(`Actions missed: ${result.actions_manquees.length}`);
     console.log('Final result keys:', Object.keys(result));
-    console.log('Final scores:', {
-      clinical: result.score_clinique,
-      communication: result.score_communication,
-      final: result.note_finale
-    });
     return new Response(JSON.stringify(result), {
       headers: {
         ...corsHeaders,
