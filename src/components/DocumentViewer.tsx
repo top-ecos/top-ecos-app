@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { File, Image as ImageIcon } from 'lucide-react';
-import { extractDocuments, type DocumentLink } from '@/lib/documents';
+import { extractDocuments, type DocumentLink } from '@/shared/lib/documents';
+import { CaseData } from '@/features/station/types/sdd.types';
 
 // Define a type for our document data
 interface DocumentViewerProps {
-  caseData: any;
+  caseData: CaseData;
 }
 
 const DocumentViewer = ({ caseData }: DocumentViewerProps) => {

@@ -118,8 +118,9 @@ const Auth = () => {
       }
       setSuccess("Si un compte existe pour cet email, un lien de réinitialisation vient d'être envoyé.");
       setAuthStep('signin');
-    } catch (err: any) {
-      console.warn('Password reset request failed:', err?.message);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.warn('Password reset request failed:', errorMessage);
       setSuccess("Si un compte existe pour cet email, un lien de réinitialisation vient d'être envoyé.");
       setAuthStep('signin');
     } finally {
@@ -181,8 +182,9 @@ const Auth = () => {
       setSuccess('Votre mot de passe a été mis à jour.');
       // User is already authenticated via the recovery link, navigate inside the app
       navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(translateAuthError(err?.message) || 'Une erreur est survenue');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : null;
+      setError(translateAuthError(errorMessage) || 'Une erreur est survenue');
     } finally {
       setIsLoading(false);
     }
@@ -233,8 +235,9 @@ const Auth = () => {
       setPendingAuth({ mode: 'signup', email, password, firstName, lastName, phone: fullPhone });
       setSignupStep('code');
       setSuccess('Un code à 6 chiffres vient d\'être envoyé par SMS.');
-    } catch (err: any) {
-      setError(translateAuthError(err?.message) || 'Impossible d\'envoyer le code');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : null;
+      setError(translateAuthError(errorMessage) || 'Impossible d\'envoyer le code');
     } finally {
       setIsLoading(false);
     }
@@ -249,8 +252,9 @@ const Auth = () => {
       });
       if (error) throw error;
       setSuccess('Code renvoyé.');
-    } catch (err: any) {
-      setError(translateAuthError(err?.message) || 'Impossible de renvoyer le code');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : null;
+      setError(translateAuthError(errorMessage) || 'Impossible de renvoyer le code');
     } finally {
       setResendLoading(false);
     }
@@ -276,8 +280,9 @@ const Auth = () => {
       if (signInError) throw signInError;
 
       navigate(from, { replace: true });
-    } catch (err: any) {
-      setError(translateAuthError(err?.message) || 'Code invalide');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : null;
+      setError(translateAuthError(errorMessage) || 'Code invalide');
     } finally {
       setIsLoading(false);
     }
@@ -304,14 +309,12 @@ const Auth = () => {
 
     // Also honor a persisted flag (set by AuthProvider) in case
     // the library consumed the URL hash before this effect ran.
-    try {
-      const flagged = sessionStorage.getItem('sb_pwd_recovery');
-      if (flagged === '1') {
-        setActiveTab('signin');
-        setAuthStep('reset');
-        sessionStorage.removeItem('sb_pwd_recovery');
-      }
-    } catch {}
+    const flagged = StorageManager.getPasswordRecoveryFlag();
+    if (flagged === '1') {
+      setActiveTab('signin');
+      setAuthStep('reset');
+      StorageManager.removePasswordRecoveryFlag();
+    }
 
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'PASSWORD_RECOVERY') {

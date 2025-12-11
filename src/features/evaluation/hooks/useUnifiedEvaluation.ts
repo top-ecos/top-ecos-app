@@ -3,13 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useProfile } from "@/shared/hooks/useProfile";
 import { getStationType } from "@/features/station/lib/station";
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date | string;
-}
+import { Message, ConversationHistory } from "@/features/chat/types/message.types";
+import { CaseData } from "@/features/station/types/sdd.types";
+import { EvaluationResult } from "@/features/evaluation/types/evaluation.types";
 
 interface ConversationMessage {
   role: 'user' | 'assistant';
@@ -22,8 +18,8 @@ interface ConversationMessage {
  * Consolidates useEvaluation and useSecheEvaluation into a single hook
  * with intelligent type detection and strategy pattern
  */
-export const useUnifiedEvaluation = (caseData: any, messages?: Message[]) => {
-  const [evaluationResult, setEvaluationResult] = useState(null);
+export const useUnifiedEvaluation = (caseData: CaseData, messages?: Message[]) => {
+  const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const { user } = useAuth();
@@ -84,7 +80,7 @@ export const useUnifiedEvaluation = (caseData: any, messages?: Message[]) => {
    * Save evaluation results to database with enhanced analytics
    */
   const saveResultsToDatabase = useCallback(async (
-    data: any,
+    data: EvaluationResult,
     transcriptData: ConversationMessage[]
   ) => {
     if (!user || !data) return;
@@ -141,9 +137,6 @@ export const useUnifiedEvaluation = (caseData: any, messages?: Message[]) => {
           ai_model_version: 'gpt-4',
           student_level: profile?.level || null
         });
-
-      const stationTypeLabel = isSecheStation ? 'Sèche' : 'standard';
-      console.log(`Résultat ${stationTypeLabel} sauvegardé en base avec analytics enrichies`);
     } catch (saveError) {
       console.error("Erreur lors de la sauvegarde:", saveError);
     }
@@ -158,20 +151,11 @@ export const useUnifiedEvaluation = (caseData: any, messages?: Message[]) => {
     setIsEvaluating(true);
     
     try {
-      const stationLabel = isSecheStation ? 'seche' : 'standard';
-      console.log(`Starting ${stationLabel} evaluation for station:`, caseData.sdd_id, 'Type:', stationType);
-      
       // Prepare conversation history (handles both station types)
       const conversationHistory = prepareConversationHistory(providedMessages);
-      
-      if (providedMessages) {
-        console.log('Evaluating provided messages:', conversationHistory);
-      }
 
       // Get appropriate function name
       const functionName = getEvaluationFunctionName();
-      const useGPT5 = import.meta.env.VITE_USE_GPT5_EVALUATION === 'true';
-      console.log(`Using evaluation function: ${functionName} (GPT-5.1: ${useGPT5})`);
 
       // Invoke evaluation edge function
       const { data, error } = await supabase.functions.invoke(functionName, {
@@ -185,8 +169,6 @@ export const useUnifiedEvaluation = (caseData: any, messages?: Message[]) => {
         console.error('Evaluation error:', error);
         throw error;
       }
-
-      console.log('Evaluation result:', data);
 
       // Prepare transcript data for storage and replay
       const transcriptData: ConversationMessage[] = conversationHistory;
@@ -218,10 +200,8 @@ export const useUnifiedEvaluation = (caseData: any, messages?: Message[]) => {
    * Legacy saveResults method for backward compatibility
    * @deprecated Use evaluatePerformance directly
    */
-  const saveResults = useCallback(async (evaluationData: any) => {
+  const saveResults = useCallback(async (evaluationData: EvaluationResult) => {
     try {
-      console.log('📝 Saving results with mock endpoint...');
-      
       const { data, error } = await supabase.functions.invoke('save-results-mock', {
         body: {
           sddId: caseData?.sdd_id,
@@ -237,7 +217,6 @@ export const useUnifiedEvaluation = (caseData: any, messages?: Message[]) => {
         throw error;
       }
 
-      console.log('✅ Results saved (mock):', data);
       return data;
     } catch (error) {
       console.error('Error in saveResults:', error);

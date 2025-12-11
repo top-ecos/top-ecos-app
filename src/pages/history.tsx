@@ -8,10 +8,13 @@ import { ChevronLeft } from "lucide-react";
 import { toast } from "@/shared/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import RecentSessions from "@/components/RecentSessions";
+import { StorageManager } from "@/shared/lib/storage";
+import { CaseData } from "@/features/station/types/sdd.types";
+import { SessionResult } from "@/shared/types/results.types";
 
-async function handleViewEvaluation(result: any, sddList: any[] | undefined, navigate: any) {
+async function handleViewEvaluation(result: SessionResult, sddList: CaseData[] | undefined, navigate: ReturnType<typeof useNavigate>) {
   try {
-    const sddMatch = (sddList || []).find((s: any) => String(s.sdd_id) === String(result.station_id));
+    const sddMatch = (sddList || []).find((s: CaseData) => String(s.sdd_id) === String(result.station_id));
     const minimalCase = {
       sdd_id: String(result.station_id),
       sdd_titre: result.station_title,
@@ -19,9 +22,9 @@ async function handleViewEvaluation(result: any, sddList: any[] | undefined, nav
       consignes_etudiant: sddMatch?.consignes_etudiant || null,
       include_documents: sddMatch?.include_documents ?? null,
       sdd_type: sddMatch?.sdd_type ?? null
-    } as any;
-    sessionStorage.setItem('selectedCase', JSON.stringify(minimalCase));
-    sessionStorage.removeItem('initialPatientMessage');
+    } as CaseData;
+    StorageManager.setSelectedCase(minimalCase);
+    StorageManager.removeInitialPatientMessage();
 
     const { data: fullRow, error } = await supabase
       .from('mock_results')
@@ -43,10 +46,10 @@ async function handleViewEvaluation(result: any, sddList: any[] | undefined, nav
       feedback: fullRow?.feedback ?? '',
       transcript_json: fullRow?.transcript_json ?? []
     };
-    sessionStorage.setItem('preloadedEvaluation', JSON.stringify(preloaded));
+    StorageManager.setPreloadedEvaluation(preloaded);
     // Flag evaluation mode so the simulation page can reconstruct state on refresh
-    sessionStorage.setItem('simMode', 'evaluation');
-    sessionStorage.setItem('resultId', String(result.id));
+    StorageManager.setSimulationMode('evaluation');
+    StorageManager.setResultId(String(result.id));
 
     navigate('/simulation');
   } catch (e) {
@@ -82,7 +85,7 @@ const HistoryPage = () => {
         <RecentSessions
           results={(results || []) as any}
           loading={resultsLoading}
-          onViewEvaluation={(r: any) => handleViewEvaluation(r, sddList, navigate)}
+          onViewEvaluation={(r: SessionResult) => handleViewEvaluation(r, sddList, navigate)}
           limit={visibleCount}
           showLoadMore
           canLoadMore={Boolean(results && results.length > visibleCount)}

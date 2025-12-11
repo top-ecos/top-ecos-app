@@ -8,18 +8,19 @@ import { TokenConsumptionResponse } from "@/shared/types/token.types";
 import { useStationProgress } from "@/shared/hooks/useStationProgress";
 import { useProfile } from "@/shared/hooks/useProfile";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { CaseData } from "@/features/station/types/sdd.types";
 import CaseFilters from "./CaseFilters";
 import CaseViewToggle from "./CaseViewToggle";
 import CaseListView from "./CaseListView";
 
 interface CaseSelectorProps {
-  onCaseSelected: (caseData: any, initialPatientMessage?: string) => void;
+  onCaseSelected: (caseData: CaseData, initialPatientMessage?: string) => void;
   onBack: () => void;
 }
 
 const CaseSelector = ({ onCaseSelected }: CaseSelectorProps) => {
-  const [cases, setCases] = useState<any[]>([]);
-  const [filteredCases, setFilteredCases] = useState<any[]>([]);
+  const [cases, setCases] = useState<CaseData[]>([]);
+  const [filteredCases, setFilteredCases] = useState<CaseData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [startingStationId, setStartingStationId] = useState<string | null>(null);
@@ -148,7 +149,7 @@ const CaseSelector = ({ onCaseSelected }: CaseSelectorProps) => {
     return specialites;
   };
 
-  const handleStartSimulation = async (caseData: any) => {
+  const handleStartSimulation = async (caseData: CaseData) => {
     // Check tokens before starting
     if (!profile || profile.tokens <= 0) {
       alert("Désolé, vous avez atteint la limite de votre compte. Veuillez réessayer plus tard ou modifier votre abonnement.");
@@ -164,9 +165,7 @@ const CaseSelector = ({ onCaseSelected }: CaseSelectorProps) => {
     
     try {
       // Clear any existing chat history for this station (fresh start)
-      localStorage.removeItem(`chat_messages_${caseData.sdd_id}`);
-      localStorage.removeItem(`timer_state_${caseData.sdd_id}`);
-      localStorage.removeItem(`hasSeenConsignes_${caseData.sdd_id}`);
+      StorageManager.clearStationData(caseData.sdd_id);
 
       console.log('Initializing patient conversation...');
       
@@ -253,15 +252,13 @@ const CaseSelector = ({ onCaseSelected }: CaseSelectorProps) => {
     }
   };
 
-  const handleResetStation = async (caseData: any) => {
+  const handleResetStation = async (caseData: CaseData) => {
     try {
       // Reset station progress in database
       await resetStationProgress(caseData.sdd_id);
       
       // Clean localStorage data
-      localStorage.removeItem(`chat_messages_${caseData.sdd_id}`);
-      localStorage.removeItem(`timer_state_${caseData.sdd_id}`);
-      localStorage.removeItem(`hasSeenConsignes_${caseData.sdd_id}`);
+      StorageManager.clearStationData(caseData.sdd_id);
       
       // Actualiser les filtres pour refléter le changement de statut
       applyFilters();

@@ -1,8 +1,10 @@
+import { CaseData } from "@/features/station/types/sdd.types";
+
 export type DocumentLink = { url: string; name?: string };
 
 // Extracts document links from a case data object, handling both individual
 // URL fields and a JSON-encoded aggregate field. Removes duplicates by URL.
-export const extractDocuments = (caseData: any): DocumentLink[] => {
+export const extractDocuments = (caseData: CaseData): DocumentLink[] => {
   if (!caseData) return [];
 
   // Explicit opt-out flags

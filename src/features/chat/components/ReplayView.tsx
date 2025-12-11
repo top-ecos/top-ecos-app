@@ -2,16 +2,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
 import { User, MessageSquare, RotateCcw, Play, PlayCircle, Info, X } from "lucide-react";
 import { useState } from "react";
-
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-}
+import { Message } from "@/features/chat/types/message.types";
+import { CaseData } from "@/features/station/types/sdd.types";
+import { StorageManager } from "@/shared/lib/storage";
 
 interface ReplayViewProps {
-  caseData: any;
+  caseData: CaseData;
   messages: Message[];
   onBack: () => void;
   onShowEvaluation: () => void;
@@ -113,7 +109,7 @@ const ReplayView = ({
                   onClick={() => {
                     setShowConsignes(prev => !prev);
                     if (caseData?.sdd_id) {
-                      try { localStorage.setItem(`hasSeenConsignes_${caseData.sdd_id}`, 'true'); } catch {}
+                      StorageManager.setConsignesSeen(caseData.sdd_id);
                     }
                   }}
                   className="inline-flex items-center gap-2 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full px-3 py-1 text-sm"

@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { BarChart3, Pause, Play, X, RotateCcw, Clock, MoreVertical, Info } from "lucide-react";
+import { CaseData } from "@/features/station/types/sdd.types";
 
 interface ChatHeaderProps {
-  caseData: any;
+  caseData: CaseData;
   timeRemaining: number;
   isPaused: boolean;
   isTimeUp: boolean; // Kept for logic, but not displayed as a banner

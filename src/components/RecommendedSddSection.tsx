@@ -7,11 +7,11 @@ import { EmptyState, Skeleton } from "@/shared/components/ui/stat-tile";
 import { User, BookOpen, ChevronRight } from "lucide-react";
 import { deriveTypeLabel } from "@/features/station/lib/station";
 import { isSddPremium } from "@/shared/lib/premium";
-import type { SDD } from "@/hooks/useSDD";
+import type { SDD } from "@/shared/hooks/useSDD";
 
 export interface RecommendedSddSectionProps {
   loading: boolean;
-  error?: any;
+  error?: Error | null;
   items: SDD[];
   isStationCompleted: (sddId: string | number) => boolean;
   isPremiumEffective: boolean;

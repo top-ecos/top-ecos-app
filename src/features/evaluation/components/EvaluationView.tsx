@@ -2,10 +2,12 @@ import React from "react";
 import { PlayCircle, RotateCcw, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import EvaluationResults from "./EvaluationResults";
+import { CaseData } from "@/features/station/types/sdd.types";
+import { EvaluationResult } from "@/features/evaluation/types/evaluation.types";
 
 interface EvaluationViewProps {
-  caseData: any;
-  evaluationResult: any;
+  caseData: CaseData;
+  evaluationResult: EvaluationResult;
   onBack: () => void;
   onShowReplay: () => void;
   onResetStation: () => void;

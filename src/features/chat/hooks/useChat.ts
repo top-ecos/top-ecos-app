@@ -1,16 +1,12 @@
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { StationTypeManager } from "@/features/station/lib/stationTypeManager";
+import { Message, ConversationHistory } from "@/features/chat/types/message.types";
+import { CaseData } from "@/features/station/types/sdd.types";
+import { StorageManager } from "@/shared/lib/storage";
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-}
-
-export const useChat = (caseData: any) => {
+export const useChat = (caseData: CaseData) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -20,61 +16,39 @@ export const useChat = (caseData: any) => {
   const intervalRef = useRef<NodeJS.Timeout>();
   const lastSendRef = useRef<number>(0);
 
-  // Mémoriser les clés de stockage
-  const storageKeys = useMemo(() => ({
-    messages: `chat_messages_${caseData.sdd_id}`,
-    timer: `timer_state_${caseData.sdd_id}`
-  }), [caseData.sdd_id]);
-
   // Charger les messages sauvegardés
   useEffect(() => {
-    const savedMessages = localStorage.getItem(storageKeys.messages);
-    const savedTimer = localStorage.getItem(storageKeys.timer);
+    const savedMessages = StorageManager.getChatMessages(caseData.sdd_id);
+    const savedTimer = StorageManager.getTimerState(caseData.sdd_id);
     
     if (savedMessages) {
-      try {
-        const parsedMessages = JSON.parse(savedMessages);
-        setMessages(parsedMessages.map((msg: any) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        })));
-      } catch (error) {
-        console.error('Error loading saved messages:', error);
-      }
+      setMessages(savedMessages);
+    } else {
+      setMessages([]);
     }
 
     if (savedTimer) {
-      try {
-        const { timeRemaining: savedTime, isPaused: savedPaused, isTimeUp: savedIsTimeUp } = JSON.parse(savedTimer);
-        setTimeRemaining(savedTime);
-        setIsPaused(savedPaused);
-        setIsTimeUp(savedIsTimeUp);
-      } catch (error) {
-        console.error('Error loading saved timer:', error);
-      }
+      setTimeRemaining(savedTimer.timeRemaining);
+      setIsPaused(savedTimer.isPaused);
+      setIsTimeUp(savedTimer.isTimeUp);
     }
-
-    // Si aucun message sauvegardé, initialiser avec un tableau vide
-    if (!savedMessages) {
-      setMessages([]);
-    }
-  }, [caseData, storageKeys]);
+  }, [caseData.sdd_id]);
 
   // Sauvegarder les messages à chaque changement
   useEffect(() => {
     if (messages.length > 0) {
-      localStorage.setItem(storageKeys.messages, JSON.stringify(messages));
+      StorageManager.saveChatMessages(caseData.sdd_id, messages);
     }
-  }, [messages, storageKeys.messages]);
+  }, [messages, caseData.sdd_id]);
 
   // Sauvegarder l'état du timer
   useEffect(() => {
-    localStorage.setItem(storageKeys.timer, JSON.stringify({
+    StorageManager.saveTimerState(caseData.sdd_id, {
       timeRemaining,
       isPaused,
       isTimeUp
-    }));
-  }, [timeRemaining, isPaused, isTimeUp, storageKeys.timer]);
+    });
+  }, [timeRemaining, isPaused, isTimeUp, caseData.sdd_id]);
 
   // Gestion du timer
   useEffect(() => {
@@ -138,7 +112,7 @@ export const useChat = (caseData: any) => {
     try {
       if (import.meta.env.DEV) console.debug('[chat] invoking edge function');
       
-      const conversationHistory = messages.filter(m => m.role !== 'system').map(m => ({
+      const conversationHistory: ConversationHistory[] = messages.filter(m => m.role !== 'system').map(m => ({
         role: m.role,
         content: m.content
       }));
@@ -147,17 +121,6 @@ export const useChat = (caseData: any) => {
       const functionName = StationTypeManager.getChatFunctionName(caseData) || 'chat-with-patient';
       const stationType = StationTypeManager.getType(caseData);
       
-<<<<<<< Updated upstream:src/hooks/useChat.ts
-      // Check if we should use dev versions (streaming enabled)
-      const useDevChat = import.meta.env.VITE_USE_DEV_CHAT === 'true';
-      
-      // Select function based on type and dev mode
-      let functionName: string;
-      if (normalizedType === 'PSS') {
-        functionName = useDevChat ? 'chat-with-pss-dev' : 'chat-with-pss';
-      } else {
-        functionName = useDevChat ? 'chat-with-patient-dev' : 'chat-with-patient';
-=======
       if (import.meta.env.DEV) console.debug(`[chat] function=${functionName} type=${stationType}`);
 
       // Both functions now use the same request format
@@ -187,135 +150,70 @@ export const useChat = (caseData: any) => {
 
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
->>>>>>> Stashed changes:src/features/chat/hooks/useChat.ts
       }
-      
-      if (import.meta.env.DEV) console.debug(`[chat] function=${functionName} type=${normalizedType} dev=${useDevChat}`);
 
-      // Different functions expect different data formats
-      const requestBody = functionName.includes('pss') 
-        ? {
-            sddData: caseData,
-            userMessage: inputMessage,
-            conversationHistory: conversationHistory
-          }
-        : {
-            sdd_id: caseData.sdd_id,
-            userMessage: inputMessage,
-            conversationHistory: conversationHistory
-          };
+      // Create placeholder assistant message for streaming
+      const assistantMessageId = (Date.now() + 1).toString();
+      const assistantMessage: Message = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, assistantMessage]);
 
-      // Dev functions use streaming SSE, production uses regular JSON response
-      if (useDevChat) {
-        // Streaming mode: use fetch with SSE
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData?.session?.access_token;
-        
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-        const functionUrl = `${supabaseUrl}/functions/v1/${functionName}`;
-        
-        const response = await fetch(functionUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${accessToken}`,
-            'apikey': supabaseAnonKey,
-          },
-          body: JSON.stringify(requestBody),
-        });
+      // Read SSE stream
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedContent = '';
 
-        if (!response.ok) {
-          throw new Error(`HTTP error: ${response.status}`);
-        }
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        // Create placeholder assistant message for streaming
-        const assistantMessageId = (Date.now() + 1).toString();
-        const assistantMessage: Message = {
-          id: assistantMessageId,
-          role: 'assistant',
-          content: '',
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, assistantMessage]);
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n');
 
-        // Read SSE stream
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
-        let accumulatedContent = '';
-
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n');
-
-            for (const line of lines) {
-              if (line.startsWith('data: ')) {
-                const data = line.slice(6).trim();
-                if (data === '[DONE]') {
-                  if (import.meta.env.DEV) console.debug('[chat] stream complete');
-                  break;
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6).trim();
+              if (data === '[DONE]') {
+                if (import.meta.env.DEV) console.debug('[chat] stream complete');
+                break;
+              }
+              try {
+                const parsed = JSON.parse(data);
+                if (parsed.content) {
+                  accumulatedContent += parsed.content;
+                  // Update message content progressively
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessageId 
+                      ? { ...msg, content: accumulatedContent }
+                      : msg
+                  ));
                 }
-                try {
-                  const parsed = JSON.parse(data);
-                  if (parsed.content) {
-                    accumulatedContent += parsed.content;
-                    // Update message content progressively
-                    setMessages(prev => prev.map(msg => 
-                      msg.id === assistantMessageId 
-                        ? { ...msg, content: accumulatedContent }
-                        : msg
-                    ));
-                  }
-                  if (parsed.error) {
-                    console.error('Stream error:', parsed.error);
-                  }
-                } catch {
-                  // Ignore JSON parse errors for incomplete chunks
+                if (parsed.error) {
+                  console.error('Stream error:', parsed.error);
                 }
+              } catch {
+                // Ignore JSON parse errors for incomplete chunks
               }
             }
           }
         }
-
-        // Fallback if no content was streamed
-        if (!accumulatedContent) {
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId 
-              ? { ...msg, content: "Je n'ai pas bien compris. Peux-tu reformuler ?" }
-              : msg
-          ));
-        }
-
-        if (import.meta.env.DEV) console.debug('[chat] streaming message complete');
-      } else {
-        // Non-streaming mode: use supabase.functions.invoke
-        const { data, error } = await supabase.functions.invoke(functionName, {
-          body: requestBody
-        });
-
-        if (error) {
-          console.error('Chat edge error');
-          throw error;
-        }
-
-        const reply = typeof (data as any)?.message === 'string' && (data as any).message.trim() !== ''
-          ? (data as any).message
-          : "Je n'ai pas bien compris. Peux-tu reformuler ?";
-
-        const assistantMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          role: 'assistant',
-          content: reply,
-          timestamp: new Date()
-        };
-
-        if (import.meta.env.DEV) console.debug('[chat] add assistant message');
-        setMessages(prev => [...prev, assistantMessage]);
       }
+
+      // Fallback if no content was streamed
+      if (!accumulatedContent) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: "Je n'ai pas bien compris. Peux-tu reformuler ?" }
+            : msg
+        ));
+      }
+
+      if (import.meta.env.DEV) console.debug('[chat] streaming message complete');
     } catch (error) {
       console.error('Chat invocation failed');
       const errorMessage: Message = {
@@ -333,8 +231,8 @@ export const useChat = (caseData: any) => {
 
   // Fonction pour nettoyer les données sauvegardées et réinitialiser
   const resetStation = useCallback(() => {
-    localStorage.removeItem(storageKeys.messages);
-    localStorage.removeItem(storageKeys.timer);
+    StorageManager.removeChatMessages(caseData.sdd_id);
+    StorageManager.removeTimerState(caseData.sdd_id);
     
     // Réinitialiser l'état
     setTimeRemaining(10 * 60);
@@ -344,13 +242,13 @@ export const useChat = (caseData: any) => {
     
     // Remettre un tableau de messages vide
     setMessages([]);
-  }, [storageKeys, caseData]);
+  }, [caseData.sdd_id]);
 
   // Fonction pour nettoyer les données sauvegardées
   const clearSavedData = useCallback(() => {
-    localStorage.removeItem(storageKeys.messages);
-    localStorage.removeItem(storageKeys.timer);
-  }, [storageKeys]);
+    StorageManager.removeChatMessages(caseData.sdd_id);
+    StorageManager.removeTimerState(caseData.sdd_id);
+  }, [caseData.sdd_id]);
 
   return {
     messages,

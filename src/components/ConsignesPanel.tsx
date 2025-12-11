@@ -5,6 +5,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
+import { CaseData } from "@/features/station/types/sdd.types";
 
 interface Document {
   url: string;
@@ -13,7 +14,7 @@ interface Document {
 }
 
 interface ConsignesPanelProps {
-  caseData: any;
+  caseData: CaseData;
   onLayoutChange?: (width: number) => void;
   onExpandedChange?: (isExpanded: boolean) => void;
   onCollapse?: () => void;
@@ -107,7 +108,7 @@ const ConsignesPanel = ({
     setIsCollapsed(false);
     // Marquer comme vu dans localStorage pour que l'indicateur disparaisse définitivement
     if (caseData?.sdd_id) {
-      localStorage.setItem(`hasSeenConsignes_${caseData.sdd_id}`, 'true');
+      StorageManager.setConsignesSeen(caseData.sdd_id);
     }
   };
 

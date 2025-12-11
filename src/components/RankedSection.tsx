@@ -6,11 +6,25 @@ import { EmptyState, Skeleton } from "@/shared/components/ui/stat-tile";
 import { User, BookOpen, ChevronRight, Info } from "lucide-react";
 import { deriveTypeLabel } from "@/features/station/lib/station";
 import { isSddPremium } from "@/shared/lib/premium";
-import type { SDD } from "@/hooks/useSDD";
+import type { SDD } from "@/shared/hooks/useSDD";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogHeader as UIDialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog";
 
 type RankedSdd = SDD & { ranked?: boolean | null };
+
+interface SDDRow {
+  sdd_id: string;
+  created_at?: string;
+  sdd_titre?: string | null;
+  consignes_etudiant?: string | null;
+  sdd_type?: string | null;
+  sdd_specialite?: string | null;
+  official_id?: string | null;
+  item_edn?: string | null;
+  include_documents?: boolean | null;
+  premium?: boolean | string | number | null;
+  ranked?: boolean | string | number | null;
+}
 
 export interface RankedSectionProps {
   isStationCompleted: (sddId: string | number) => boolean;
@@ -23,7 +37,7 @@ export interface RankedSectionProps {
   fallbackFromAll?: SDD[];
 }
 
-const mapRowToSdd = (row: any): RankedSdd => {
+const mapRowToSdd = (row: SDDRow): RankedSdd => {
   const sddId = String(row.sdd_id);
   const sddType = row?.sdd_type ?? null;
   const premiumFlag = typeof row?.premium === 'boolean'
@@ -101,7 +115,7 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
         setItems(mapped);
       }
       setError(null);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Error fetching ranked SDDs:', e);
       // On error: try to supply a best-effort fallback
       if (Array.isArray(fallbackFromAll) && fallbackFromAll.length) {

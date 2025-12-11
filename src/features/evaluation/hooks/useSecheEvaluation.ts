@@ -2,6 +2,8 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useProfile } from "@/shared/hooks/useProfile";
+import { CaseData } from "@/features/station/types/sdd.types";
+import { EvaluationResult } from "@/features/evaluation/types/evaluation.types";
 
 interface SecheMessage {
   role: 'user';
@@ -9,8 +11,8 @@ interface SecheMessage {
   timestamp: string;
 }
 
-export const useSecheEvaluation = (caseData: any) => {
-  const [evaluationResult, setEvaluationResult] = useState(null);
+export const useSecheEvaluation = (caseData: CaseData) => {
+  const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const { user } = useAuth();
@@ -19,12 +21,8 @@ export const useSecheEvaluation = (caseData: any) => {
   const evaluatePerformance = useCallback(async (conversationHistory: SecheMessage[]) => {
     setIsEvaluating(true);
     try {
-      console.log('Starting seche evaluation for station:', caseData.sdd_id);
-      console.log('Seche messages to evaluate:', conversationHistory);
-      
       const useGPT5 = import.meta.env.VITE_USE_GPT5_EVALUATION === 'true';
       const functionName = useGPT5 ? 'evaluate-performance-seche-dev' : 'evaluate-performance-seche';
-      console.log(`Using seche evaluation function: ${functionName} (GPT-5.1: ${useGPT5})`);
       
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
@@ -37,8 +35,6 @@ export const useSecheEvaluation = (caseData: any) => {
         console.error('Seche evaluation error:', error);
         throw error;
       }
-
-      console.log('Seche evaluation result:', data);
       // Prepare transcript for replay and DB
       const transcriptData = conversationHistory.map(m => ({
         role: m.role,
@@ -47,7 +43,7 @@ export const useSecheEvaluation = (caseData: any) => {
       }));
 
       // Attach transcript_json to the in-memory result for replay
-      setEvaluationResult({ ...(data as any), transcript_json: transcriptData });
+      setEvaluationResult({ ...(data as EvaluationResult), transcript_json: transcriptData });
 
       // Save result to database if user is authenticated
       if (user && data) {
@@ -100,7 +96,6 @@ export const useSecheEvaluation = (caseData: any) => {
               ai_model_version: 'gpt-4',
               student_level: profile?.level || null
             });
-          console.log("Résultat Sèche sauvegardé en base avec analytics enrichies");
         } catch (saveError) {
           console.error("Erreur lors de la sauvegarde Sèche:", saveError);
         }

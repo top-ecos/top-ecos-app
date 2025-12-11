@@ -1,6 +1,7 @@
 // src/hooks/useSDD.ts
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { StorageManager } from "@/shared/lib/storage";
 
 export type SDD = {
   id: string;                    // React key
@@ -38,8 +39,6 @@ const deriveTypeDeStation = (sdd_type: string | null): string | null => {
   }
 };
 
-// Bump cache key to avoid serving stale (non-live) cached items
-const SDD_CACHE_KEY = 'sddCacheV2';
 const SDD_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
 export const useSDD = () => {
@@ -78,7 +77,22 @@ export const useSDD = () => {
 
       if (error) throw error;
 
-      const rows = (data ?? []).map((row: any) => {
+      interface SDDRow {
+        sdd_id: string;
+        created_at?: string;
+        sdd_titre?: string | null;
+        consignes_etudiant?: string | null;
+        sdd_type?: string | null;
+        sdd_specialite?: string | null;
+        official_id?: string | null;
+        item_edn?: string | null;
+        include_documents?: boolean | null;
+        premium?: boolean | string | number | null;
+        ranked?: boolean | string | number | null;
+        status?: string;
+      }
+
+      const rows = (data ?? []).map((row: SDDRow) => {
         const sddId = String(row.sdd_id); // UUID -> string
         const sddType = row?.sdd_type ?? null;
         const premiumFlag = typeof row?.premium === 'boolean'
@@ -112,11 +126,12 @@ export const useSDD = () => {
 
       setSddList(rows);
       // cache the fresh list
-      try { localStorage.setItem(SDD_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: rows })); } catch {}
+      StorageManager.setSddCache(rows);
       setError(null);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Error fetching SDD:", err);
-      setError(err?.message ?? "Une erreur est survenue lors du chargement des SDD.");
+      const errorMessage = err instanceof Error ? err.message : "Une erreur est survenue lors du chargement des SDD.";
+      setError(errorMessage);
       const useLoading = opts?.withLoading !== false;
       if (useLoading) {
         // On cold-load failure, clear list so error empty state can show
@@ -136,21 +151,12 @@ export const useSDD = () => {
   useEffect(() => {
     // Try cache-first for instant load
     let usedCache = false;
-    try {
-      const raw = localStorage.getItem(SDD_CACHE_KEY);
-      if (raw) {
-        const obj = JSON.parse(raw);
-        if (obj && typeof obj.ts === 'number' && Array.isArray(obj.data)) {
-          const isFresh = (Date.now() - obj.ts) < SDD_CACHE_TTL_MS;
-          if (isFresh) {
-            setSddList(obj.data as SDD[]);
-            setLoading(false);
-            usedCache = true;
-          }
-          // If stale, ignore it to avoid flashing outdated SDDs
-        }
-      }
-    } catch {}
+    const cached = StorageManager.getSddCache();
+    if (cached && StorageManager.isCacheValid(cached, SDD_CACHE_TTL_MS)) {
+      setSddList(cached.data as SDD[]);
+      setLoading(false);
+      usedCache = true;
+    }
 
     // Always revalidate in background; avoid toggling loading if we had cache
     fetchSDD({ withLoading: usedCache ? false : true });

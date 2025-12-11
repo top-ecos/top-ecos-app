@@ -10,12 +10,12 @@ const toBool = (v: unknown): boolean => {
   return false;
 };
 
-export const isUserPremium = (profile: { premium?: any } | null | undefined): boolean => {
+export const isUserPremium = (profile: { premium?: unknown } | null | undefined): boolean => {
   return toBool(profile?.premium);
 };
 
-export const isSddPremium = (sdd: Partial<SDD> | { premium?: any } | any): boolean => {
-  return toBool((sdd as any)?.premium);
+export const isSddPremium = (sdd: Partial<SDD> | { premium?: unknown }): boolean => {
+  return toBool(sdd?.premium);
 };
 
 export const filterSddsForUser = (sdds: SDD[], isPremiumUser: boolean): SDD[] => {

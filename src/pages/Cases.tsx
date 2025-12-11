@@ -70,7 +70,7 @@ const Cases = () => {
   // Immediately show an empty layout skeleton, and after 250ms show detailed skeletons.
   const [showDetailedSkeleton, setShowDetailedSkeleton] = useState(false);
   useEffect(() => {
-    let t: any;
+    let t: ReturnType<typeof setTimeout> | undefined;
     if (sddLoading) {
       setShowDetailedSkeleton(false);
       t = setTimeout(() => setShowDetailedSkeleton(true), 250);
@@ -118,8 +118,9 @@ const Cases = () => {
         sanitizeMessage: true,
       });
       navigate('/simulation');
-    } catch (error: any) {
-      toast.error(error?.message || 'Erreur lors du démarrage de la simulation. Veuillez réessayer.');
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du démarrage de la simulation. Veuillez réessayer.';
+      toast.error(errorMessage);
       // Refresh profile to get current token state
       // (Token refund would need to be handled by a separate Edge Function if required)
       if (profile && user) {
@@ -394,7 +395,7 @@ const Cases = () => {
                   </Button>
                 }
               />
-            ) : (() => { const nonRanked = filteredSDD.filter((s:any) => s?.ranked !== true); return nonRanked.length === 0; })() ? (
+            ) : (() => { const nonRanked = filteredSDD.filter((s) => s?.ranked !== true); return nonRanked.length === 0; })() ? (
               <EmptyState
                 icon={<BookOpen size={24} />}
                 title="Aucune station ne correspond à tes critères de recherche"
@@ -417,10 +418,10 @@ const Cases = () => {
                         if (ap === bp) return 0;
                         return ap ? 1 : -1; // free first
                       })
-                ).filter((s:any) => s?.ranked !== true).slice(0, visibleCount).map((sdd) => {
+                ).filter((s) => s?.ranked !== true).slice(0, visibleCount).map((sdd) => {
                   const isCompleted = isStationCompleted(sdd.sdd_id);
-                  const showDocumentBadge = ((sdd as any).sdd_type === 'PS' || (sdd as any).sdd_type === 'PSS') &&
-                    ( (sdd as any).include_documents === true );
+                  const showDocumentBadge = (sdd.sdd_type === 'PS' || sdd.sdd_type === 'PSS') &&
+                    ( sdd.include_documents === true );
                   const premiumSdd = isSddPremium(sdd);
                   const isFreeUser = !isPremiumUser;
                   const typeLabel = (deriveTypeLabel(sdd) === 'Documents') ? 'Document(s)' : deriveTypeLabel(sdd);
@@ -531,11 +532,11 @@ const Cases = () => {
                   );
                 })}
               </div>
-              {filteredSDD.filter((s:any) => s?.ranked !== true).length > visibleCount && (
+              {filteredSDD.filter((s) => s?.ranked !== true).length > visibleCount && (
                 <div className="flex justify-center mt-6">
                   <Button
                     variant="secondary"
-                    onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, filteredSDD.filter((s:any) => s?.ranked !== true).length))}
+                    onClick={() => setVisibleCount((c) => Math.min(c + PAGE_SIZE, filteredSDD.filter((s) => s?.ranked !== true).length))}
                   >
                     Voir plus de stations
                   </Button>

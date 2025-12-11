@@ -2,6 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
+interface TranscriptMessage {
+  role: string;
+  content: string;
+  timestamp?: string;
+}
+
+interface EvaluationDetails {
+  actions_reussies?: string[] | Array<{ action: string; extrait: string }>;
+  actions_manquees?: string[];
+  communication_details?: Record<string, number>;
+  [key: string]: unknown;
+}
+
 interface MockResult {
   id: string;
   user_id: string;
@@ -13,12 +26,12 @@ interface MockResult {
   duration_minutes: number | null;
   created_at: string;
   // Enhanced analytics fields
-  transcript_json: any;
+  transcript_json: TranscriptMessage[] | null;
   score_clinique: number | null;
   score_communication: number | null;
   score_phase_1: number | null;
   score_phase_2: number | null;
-  evaluation_details: any;
+  evaluation_details: EvaluationDetails | null;
   session_start_time: string | null;
   evaluation_time: string | null;
   message_count: number | null;
@@ -141,7 +154,7 @@ export const useResults = (options: UseResultsOptions = {}) => {
 
           // Group by type
           const sessionsByType: Record<string, { count: number; totalScore: number }> = {};
-          (data as any).forEach((result: any) => {
+          data.forEach((result: MockResult) => {
             if (!sessionsByType[result.typologie]) {
               sessionsByType[result.typologie] = { count: 0, totalScore: 0 };
             }
@@ -158,16 +171,16 @@ export const useResults = (options: UseResultsOptions = {}) => {
           }, {} as Record<string, { count: number; averageScore: number }>);
 
           // Enhanced analytics
-          const totalMessages = (data as any).reduce((sum: number, result: any) => sum + (result.message_count || 0), 0);
-          const validResponseTimes = (data as any).filter((r: any) => r.avg_response_time_seconds != null);
+          const totalMessages = data.reduce((sum: number, result: MockResult) => sum + (result.message_count || 0), 0);
+          const validResponseTimes = data.filter((r: MockResult) => r.avg_response_time_seconds != null);
           const averageResponseTime = validResponseTimes.length > 0 
-            ? validResponseTimes.reduce((sum: number, result: any) => sum + (result.avg_response_time_seconds || 0), 0) / validResponseTimes.length
+            ? validResponseTimes.reduce((sum: number, result: MockResult) => sum + (result.avg_response_time_seconds || 0), 0) / validResponseTimes.length
             : null;
-          const totalMistakes = (data as any).reduce((sum: number, result: any) => sum + (result.mistakes_count || 0), 0);
+          const totalMistakes = data.reduce((sum: number, result: MockResult) => sum + (result.mistakes_count || 0), 0);
 
           // Group by difficulty
           const difficultyBreakdown: Record<string, { count: number; totalScore: number }> = {};
-          (data as any).forEach((result: any) => {
+          data.forEach((result: MockResult) => {
             const difficulty = result.station_difficulty || 'Unknown';
             if (!difficultyBreakdown[difficulty]) {
               difficultyBreakdown[difficulty] = { count: 0, totalScore: 0 };
@@ -185,10 +198,10 @@ export const useResults = (options: UseResultsOptions = {}) => {
           }, {} as Record<string, { count: number; averageScore: number }>);
 
           // Subscore averages
-          const cliniqueScores = (data as any).filter((r: any) => r.score_clinique != null).map((r: any) => r.score_clinique!);
-          const communicationScores = (data as any).filter((r: any) => r.score_communication != null).map((r: any) => r.score_communication!);
-          const phase1Scores = (data as any).filter((r: any) => r.score_phase_1 != null).map((r: any) => r.score_phase_1!);
-          const phase2Scores = (data as any).filter((r: any) => r.score_phase_2 != null).map((r: any) => r.score_phase_2!);
+          const cliniqueScores = data.filter((r: MockResult) => r.score_clinique != null).map((r: MockResult) => r.score_clinique!);
+          const communicationScores = data.filter((r: MockResult) => r.score_communication != null).map((r: MockResult) => r.score_communication!);
+          const phase1Scores = data.filter((r: MockResult) => r.score_phase_1 != null).map((r: MockResult) => r.score_phase_1!);
+          const phase2Scores = data.filter((r: MockResult) => r.score_phase_2 != null).map((r: MockResult) => r.score_phase_2!);
 
           setStats({
             totalSessions,
@@ -245,12 +258,12 @@ export const useResults = (options: UseResultsOptions = {}) => {
     feedback?: string,
     durationMinutes?: number,
     enhancedData?: {
-      transcript_json?: any;
+      transcript_json?: TranscriptMessage[];
       score_clinique?: number;
       score_communication?: number;
       score_phase_1?: number;
       score_phase_2?: number;
-      evaluation_details?: any;
+      evaluation_details?: EvaluationDetails;
       session_start_time?: string;
       evaluation_time?: string;
       message_count?: number;

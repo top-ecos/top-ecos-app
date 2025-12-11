@@ -1,5 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { SDD } from "@/shared/hooks/useSDD";
+import { StorageManager } from "@/shared/lib/storage";
+import { CaseData } from "@/features/station/types/sdd.types";
+import { TokenConsumptionResponse } from "@/shared/types/token.types";
 
 export class SimulationError extends Error {
   code?: string;
@@ -12,7 +15,7 @@ export class SimulationError extends Error {
 
 type Deps = {
   updateTokens: (count: number) => void;
-  updateLastAttempt: (stationId: string) => Promise<any>;
+  updateLastAttempt: (stationId: string) => Promise<void>;
   sanitizeMessage?: boolean;
 };
 
@@ -25,14 +28,8 @@ export const startSimulation = async (sdd: SDD, deps: Deps) => {
   const { updateTokens, updateLastAttempt, sanitizeMessage: doSanitize } = deps;
 
   // Clear any existing state for a fresh run
-  try {
-    localStorage.removeItem(`chat_messages_${sdd.sdd_id}`);
-    localStorage.removeItem(`timer_state_${sdd.sdd_id}`);
-    localStorage.removeItem(`hasSeenConsignes_${sdd.sdd_id}`);
-  } catch {}
-  try {
-    sessionStorage.removeItem('preloadedEvaluation');
-  } catch {}
+  StorageManager.clearStationData(sdd.sdd_id);
+  StorageManager.removePreloadedEvaluation();
 
   // Consume a token server-side
   const { data: tokenResult, error: tokenError } = await supabase.functions.invoke('consume-token', {
@@ -43,7 +40,7 @@ export const startSimulation = async (sdd: SDD, deps: Deps) => {
     throw new SimulationError('Erreur lors de la consommation du token. Veuillez réessayer.', 'TOKEN_INVOKE_ERROR');
   }
 
-  const result = tokenResult as any;
+  const result = tokenResult as TokenConsumptionResponse;
   if (!result?.success) {
     const code = result?.code;
     const errorMsg = result?.error || 'Token consumption failed';
@@ -81,7 +78,7 @@ export const startSimulation = async (sdd: SDD, deps: Deps) => {
     throw new SimulationError("Erreur lors de l'initialisation de la conversation", 'CHAT_INIT_ERROR');
   }
 
-  const initialMessage: string = (initData as any)?.message ?? '';
+  const initialMessage: string = (initData as { message?: string })?.message ?? '';
 
   // Fetch complete case data with least-privilege columns
   const { data: fullCaseData, error: fetchError } = await supabase
@@ -107,17 +104,17 @@ export const startSimulation = async (sdd: SDD, deps: Deps) => {
     .eq('sdd_id', sdd.sdd_id)
     .single();
 
-  let completeCase: any = sdd;
+  let completeCase: CaseData = sdd;
   if (!fetchError && fullCaseData) {
     completeCase = { ...sdd, ...fullCaseData };
   }
 
   // Persist in session for Simulation page
-  try {
-    sessionStorage.setItem('selectedCase', JSON.stringify(completeCase));
-    const msg = doSanitize ? sanitizeMessage(initialMessage) : initialMessage;
-    if (msg) sessionStorage.setItem('initialPatientMessage', msg);
-  } catch {}
+  StorageManager.setSelectedCase(completeCase);
+  const msg = doSanitize ? sanitizeMessage(initialMessage) : initialMessage;
+  if (msg) {
+    StorageManager.setInitialPatientMessage(msg);
+  }
 
   return { initialMessage, completeCase, tokensRemaining: result.tokens_remaining };
 };

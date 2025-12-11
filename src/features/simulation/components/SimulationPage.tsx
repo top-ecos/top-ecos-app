@@ -1,11 +1,12 @@
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import ChatInterface from "./ChatInterface";
+import SimulationRouter from "./SimulationRouter";
 import { useStationProgress } from "@/shared/hooks/useStationProgress";
 import type { CaseData } from "@/features/station/types/sdd.types";
 import type { EvaluationResult } from "@/features/evaluation/types/evaluation.types";
 import { supabase } from "@/integrations/supabase/client";
+import { StorageManager } from "@/shared/lib/storage";
 
 const Simulation = () => {
   const navigate = useNavigate();
@@ -23,68 +24,42 @@ const Simulation = () => {
 
   useEffect(() => {
     // Récupérer les données stockées dans sessionStorage
-    let storedCase: string | null = null;
-    let storedMessage: string | null = null;
-    let storedEvaluation: string | null = null;
-    let simMode: string | null = null;
-    let storedResultId: string | null = null;
+    const storedCase = StorageManager.getSelectedCase();
+    const storedMessage = StorageManager.getInitialPatientMessage();
+    const storedEvaluationData = StorageManager.getPreloadedEvaluation();
+    const simMode = StorageManager.getSimulationMode();
+    const storedResultId = StorageManager.getResultId();
 
-    try {
-      storedCase = sessionStorage.getItem('selectedCase');
-      storedMessage = sessionStorage.getItem('initialPatientMessage');
-      storedEvaluation = sessionStorage.getItem('preloadedEvaluation');
-      simMode = sessionStorage.getItem('simMode');
-      storedResultId = sessionStorage.getItem('resultId');
-    } catch {
-      // sessionStorage might be unavailable (privacy mode); fallback to redirect
-      navigate('/');
-      return;
-    }
-
-    // Case data handling: allow missing case only when in evaluation mode (we will reconstruct minimal case)
-    if (storedCase) {
-      try {
-        const parsedCase = JSON.parse(storedCase);
-        if (validateCaseData(parsedCase)) {
-          setCaseData(parsedCase);
-        } else {
-          console.error('Invalid case data structure');
-          sessionStorage.removeItem('selectedCase');
-          if (simMode !== 'evaluation') {
-            navigate('/');
-            return;
-          }
-        }
-      } catch {
-        // Parsing failed; cleanup and redirect if not in evaluation mode
-        sessionStorage.removeItem('selectedCase');
-        if (simMode !== 'evaluation') {
-          navigate('/');
-          return;
-        }
-      }
-    } else if (simMode !== 'evaluation') {
+    if (!storedCase && simMode !== 'evaluation') {
       // No case and not in evaluation mode → go home
       navigate('/');
       return;
     }
 
-    if (storedMessage && typeof storedMessage === 'string') {
-      setInitialPatientMessage(storedMessage);
-    }
-
-    if (storedEvaluation) {
-      try {
-        const parsed = JSON.parse(storedEvaluation) as EvaluationResult;
-        setPreloadedEvaluation(parsed);
-      } catch {
-        // Drop malformed preloaded evaluation to avoid contaminating session
-        sessionStorage.removeItem('preloadedEvaluation');
+    // Case data handling
+    if (storedCase) {
+      if (validateCaseData(storedCase)) {
+        setCaseData(storedCase);
+      } else {
+        console.error('Invalid case data structure');
+        StorageManager.removeSelectedCase();
+        if (simMode !== 'evaluation') {
+          navigate('/');
+          return;
+        }
       }
     }
 
+    if (storedMessage) {
+      setInitialPatientMessage(storedMessage);
+    }
+
+    if (storedEvaluationData) {
+      setPreloadedEvaluation(storedEvaluationData);
+    }
+
     // If in evaluation mode and missing preloaded evaluation, reconstruct from resultId
-    if (simMode === 'evaluation' && !storedEvaluation) {
+    if (simMode === 'evaluation' && !storedEvaluationData) {
       if (!storedResultId) {
         console.error('Evaluation mode enabled but missing resultId');
         navigate('/history');
@@ -118,7 +93,7 @@ const Simulation = () => {
           } as any;
 
           setPreloadedEvaluation(preloaded);
-          try { sessionStorage.setItem('preloadedEvaluation', JSON.stringify(preloaded)); } catch {}
+          StorageManager.setPreloadedEvaluation(preloaded);
 
           // If case data missing, build a minimal case from result row
           if (!storedCase) {
@@ -131,7 +106,7 @@ const Simulation = () => {
               sdd_type: null,
             } as any;
             setCaseData(minimalCase);
-            try { sessionStorage.setItem('selectedCase', JSON.stringify(minimalCase)); } catch {}
+            StorageManager.setSelectedCase(minimalCase);
           }
         } catch (e) {
           console.error('Error reconstructing evaluation on refresh:', e);
@@ -146,23 +121,15 @@ const Simulation = () => {
     if (caseData && validateCaseData(caseData)) {
       try {
         await resetStationProgress(caseData.sdd_id);
-        localStorage.removeItem(`chat_messages_${caseData.sdd_id}`);
-        localStorage.removeItem(`timer_state_${caseData.sdd_id}`);
-        localStorage.removeItem(`hasSeenConsignes_${caseData.sdd_id}`);
+        StorageManager.clearStationData(caseData.sdd_id);
       } catch (error) {
         console.error('Error during cleanup:', error);
       }
     }
     
     // Nettoyer les données stockées
-    try {
-      sessionStorage.removeItem('selectedCase');
-      sessionStorage.removeItem('initialPatientMessage');
-      sessionStorage.removeItem('preloadedEvaluation');
-      sessionStorage.removeItem('simMode');
-      sessionStorage.removeItem('resultId');
-    } catch {}
-      navigate('/cases');
+    StorageManager.clearSimulationSession();
+    navigate('/cases');
   };
 
   if (!caseData) {
@@ -178,7 +145,7 @@ const Simulation = () => {
 
   return (
     <>
-      <ChatInterface 
+      <SimulationRouter 
         caseData={caseData} 
         onBack={handleBack}
         initialPatientMessage={initialPatientMessage}

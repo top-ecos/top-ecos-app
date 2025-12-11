@@ -27,9 +27,25 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
     onResult,
   } = options;
 
+  interface SpeechRecognitionInterface {
+    start(): void;
+    stop(): void;
+    abort(): void;
+    lang: string;
+    continuous: boolean;
+    interimResults: boolean;
+    onresult: ((event: unknown) => void) | null;
+    onerror: ((event: unknown) => void) | null;
+    onend: (() => void) | null;
+  }
+
   const SpeechRecognition = useMemo(() => {
     if (typeof window === "undefined") return null;
-    return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition || null;
+    const windowWithSpeech = window as Window & {
+      SpeechRecognition?: new () => SpeechRecognitionInterface;
+      webkitSpeechRecognition?: new () => SpeechRecognitionInterface;
+    };
+    return windowWithSpeech.SpeechRecognition || windowWithSpeech.webkitSpeechRecognition || null;
   }, []);
 
   const [isSupported, setIsSupported] = useState<boolean>(!!SpeechRecognition);
@@ -37,7 +53,7 @@ export function useSpeechRecognition(options: UseSpeechRecognitionOptions = {}):
   const [error, setError] = useState<string | null>(null);
   const permissionDeniedRef = useRef(false);
 
-  const recognitionRef = useRef<any | null>(null);
+  const recognitionRef = useRef<SpeechRecognitionInterface | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const silenceRef = useRef<number | null>(null);
 

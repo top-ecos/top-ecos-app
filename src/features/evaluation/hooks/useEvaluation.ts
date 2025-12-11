@@ -3,16 +3,12 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/shared/contexts/AuthContext";
 import { useProfile } from "@/shared/hooks/useProfile";
+import { Message } from "@/features/chat/types/message.types";
+import { CaseData } from "@/features/station/types/sdd.types";
+import { EvaluationResult } from "@/features/evaluation/types/evaluation.types";
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant' | 'system';
-  content: string;
-  timestamp: Date;
-}
-
-export const useEvaluation = (caseData: any, messages: Message[]) => {
-  const [evaluationResult, setEvaluationResult] = useState(null);
+export const useEvaluation = (caseData: CaseData, messages: Message[]) => {
+  const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const { user } = useAuth();
@@ -21,8 +17,6 @@ export const useEvaluation = (caseData: any, messages: Message[]) => {
   const evaluatePerformance = useCallback(async () => {
     setIsEvaluating(true);
     try {
-      console.log('Starting evaluation for station:', caseData.sdd_id, 'Type:', caseData.Type_de_station);
-      
       const conversationHistory = messages.filter(m => m.role !== 'system').map(m => ({
         role: m.role,
         content: m.content
@@ -35,8 +29,6 @@ export const useEvaluation = (caseData: any, messages: Message[]) => {
         ? (useGPT5 ? 'evaluate-performance-seche-dev' : 'evaluate-performance-seche')
         : (useGPT5 ? 'evaluate-performance-dev' : 'evaluate-performance');
 
-      console.log(`Using evaluation function: ${functionName} (GPT-5.1: ${useGPT5})`);
-
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
           sddData: caseData,
@@ -48,8 +40,6 @@ export const useEvaluation = (caseData: any, messages: Message[]) => {
         console.error('Evaluation error:', error);
         throw error;
       }
-
-      console.log('Evaluation result:', data);
       // Serialize messages for JSON storage / replay
       const transcriptData = messages
         .filter(m => m.role !== 'system')
@@ -60,7 +50,7 @@ export const useEvaluation = (caseData: any, messages: Message[]) => {
         }));
 
       // Expose transcript_json in the in-memory evaluation result for replay
-      setEvaluationResult({ ...(data as any), transcript_json: transcriptData });
+      setEvaluationResult({ ...(data as EvaluationResult), transcript_json: transcriptData });
 
       // Save result to database if user is authenticated
       if (user && data) {
@@ -114,7 +104,6 @@ export const useEvaluation = (caseData: any, messages: Message[]) => {
               ai_model_version: 'gpt-4',
               student_level: profile?.level || null
             });
-          console.log("Résultat sauvegardé en base avec analytics enrichies");
         } catch (saveError) {
           console.error("Erreur lors de la sauvegarde:", saveError);
         }
@@ -127,10 +116,8 @@ export const useEvaluation = (caseData: any, messages: Message[]) => {
     }
   }, [caseData, messages, user, sessionStartTime, profile?.level]);
 
-  const saveResults = useCallback(async (evaluationData: any) => {
+  const saveResults = useCallback(async (evaluationData: EvaluationResult) => {
     try {
-      console.log('📝 Saving results with mock endpoint...');
-      
       const { data, error } = await supabase.functions.invoke('save-results-mock', {
         body: {
           sddId: caseData?.sdd_id,
@@ -146,7 +133,6 @@ export const useEvaluation = (caseData: any, messages: Message[]) => {
         throw error;
       }
 
-      console.log('✅ Results saved (mock):', data);
       return data;
     } catch (error) {
       console.error('Error in saveResults:', error);

@@ -24,15 +24,13 @@ const Profil = () => {
     updated_at?: string;
   } | null;
   const [cachedProfile, setCachedProfile] = useState<CachedProfile>(() => {
-    try {
-      const raw = localStorage.getItem('profileDisplayCacheV1');
-      if (!raw) return null;
-      const obj = JSON.parse(raw);
-      const ttlMs = 30 * 24 * 60 * 60 * 1000; // 30 days
-      if (obj && typeof obj.ts === 'number' && (Date.now() - obj.ts) < ttlMs && obj.data) {
-        return obj.data as CachedProfile;
-      }
-    } catch {}
+    const ttlMs = 30 * 24 * 60 * 60 * 1000; // 30 days
+    const cache = typeof StorageManager?.getProfileDisplayCache === 'function'
+      ? StorageManager.getProfileDisplayCache()
+      : null;
+    if (cache && typeof StorageManager?.isCacheValid === 'function' && StorageManager.isCacheValid(cache, ttlMs)) {
+      return cache.data as CachedProfile;
+    }
     return null;
   });
   
@@ -65,8 +63,8 @@ const Profil = () => {
         emoji: (profile as any).emoji || '',
       });
       // Persist fresh profile to display-only cache (do not override main profile cache used by app logic)
-      try {
-        localStorage.setItem('profileDisplayCacheV1', JSON.stringify({ ts: Date.now(), data: {
+      if (typeof StorageManager?.setProfileDisplayCache === 'function') {
+        StorageManager.setProfileDisplayCache({
           pseudo: (profile as any).pseudo || '',
           first_name: profile.first_name || '',
           last_name: profile.last_name || '',
@@ -74,8 +72,8 @@ const Profil = () => {
           emoji: (profile as any).emoji || '',
           created_at: (profile as any).created_at || undefined,
           updated_at: (profile as any).updated_at || undefined,
-        }}));
-      } catch {}
+        });
+      }
     } else if (cachedProfile) {
       setFormData({
         pseudo: cachedProfile.pseudo || '',
@@ -172,18 +170,16 @@ const Profil = () => {
 
       setFormData(prev => ({ ...prev, emoji: nextEmoji }));
 
-      try {
-        const raw = localStorage.getItem('profileDisplayCacheV1');
-        const obj = raw ? JSON.parse(raw) : { ts: 0, data: {} };
-        const data = { ...(obj?.data || {}), emoji: nextEmoji };
-        localStorage.setItem('profileDisplayCacheV1', JSON.stringify({ ts: Date.now(), data }));
-      } catch {}
+      const cache = StorageManager.getProfileDisplayCache();
+      const data = { ...(cache?.data || {}), emoji: nextEmoji };
+      StorageManager.setProfileDisplayCache(data);
 
       await refreshProfile();
       toast.success(nextEmoji ? 'Photo de profil mise à jour.' : 'Photo de profil réinitialisée.');
       setShowEmojiPicker(false);
-    } catch (e: any) {
-      toast.error(e?.message || 'Impossible de mettre à jour la photo de profil.');
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Impossible de mettre à jour la photo de profil.';
+      toast.error(errorMessage);
     } finally {
       setIsUpdatingEmoji(false);
     }
@@ -238,8 +234,9 @@ const Profil = () => {
       setCurrentPassword('');
       setNewPassword('');
       
-    } catch (err: any) {
-      toast.error(err?.message || 'Une erreur est survenue lors de la mise à jour.');
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Une erreur est survenue lors de la mise à jour.';
+      toast.error(errorMessage);
     } finally {
       setIsUpdatingPassword(false);
     }

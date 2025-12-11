@@ -196,8 +196,10 @@ interface Document {
   name?: string;
 }
 
+import { CaseData } from "@/features/station/types/sdd.types";
+
 interface ChatViewProps {
-  caseData: any;
+  caseData: CaseData;
   messages: Message[];
   inputMessage: string;
   isLoading: boolean;
@@ -316,7 +318,17 @@ const ChatView = React.memo(({
 ChatView.displayName = "ChatView";
 
 // --- SUB-COMPONENTS FOR CLEANLINESS ---
-const ChatInterface = ({ caseData, messages, isLoading, showConsignes, onShowConsignes, onHideConsignes, ...chatInputProps }: any) => {
+interface ChatInterfaceProps {
+  caseData: CaseData;
+  messages: Message[];
+  isLoading: boolean;
+  showConsignes: boolean;
+  onShowConsignes: () => void;
+  onHideConsignes: () => void;
+  [key: string]: unknown;
+}
+
+const ChatInterface = ({ caseData, messages, isLoading, showConsignes, onShowConsignes, onHideConsignes, ...chatInputProps }: ChatInterfaceProps) => {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [isAtBottom, setIsAtBottom] = useState(true);
 
@@ -454,7 +466,7 @@ const ChatInterface = ({ caseData, messages, isLoading, showConsignes, onShowCon
   );
 };
 
-const PatientHeader = ({ caseData, onShowConsignes }: { caseData: any, onShowConsignes: () => void }) => {
+const PatientHeader = ({ caseData, onShowConsignes }: { caseData: CaseData, onShowConsignes: () => void }) => {
   // Use StationTypeManager for consistent character display name
   const displayName = StationTypeManager.getCharacterDisplayName(caseData);
   const isDocs = StationTypeManager.isDocumentStation(caseData);

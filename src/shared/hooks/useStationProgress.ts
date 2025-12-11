@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
+import { StorageManager } from '@/shared/lib/storage';
 
 export type StationProgress = {
   id: string;
@@ -24,14 +25,11 @@ export const useStationProgress = () => {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const CACHE_KEY = 'stationProgressCacheV1';
   const CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
 
   const persistCache = (map: Map<string, StationProgress>) => {
-    try {
-      const arr = Array.from(map.values());
-      localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: arr }));
-    } catch {}
+    const arr = Array.from(map.values());
+    StorageManager.setStationProgressCache(arr);
   };
 
   // Fetch all user's station progress
@@ -270,22 +268,14 @@ export const useStationProgress = () => {
   useEffect(() => {
     // cache-first
     let usedCache = false;
-    try {
-      const raw = localStorage.getItem(CACHE_KEY);
-      if (raw) {
-        const obj = JSON.parse(raw);
-        if (obj && typeof obj.ts === 'number' && Array.isArray(obj.data)) {
-          const fresh = (Date.now() - obj.ts) < CACHE_TTL_MS;
-          if (fresh) {
-            const map = new Map<string, StationProgress>();
-            (obj.data as StationProgress[]).forEach((p) => map.set(p.station_id, p));
-            setProgressMap(map);
-            setLoading(false);
-            usedCache = true;
-          }
-        }
-      }
-    } catch {}
+    const cached = StorageManager.getStationProgressCache();
+    if (cached && StorageManager.isCacheValid(cached, CACHE_TTL_MS)) {
+      const map = new Map<string, StationProgress>();
+      (cached.data as StationProgress[]).forEach((p) => map.set(p.station_id, p));
+      setProgressMap(map);
+      setLoading(false);
+      usedCache = true;
+    }
 
     fetchProgress({ withLoading: usedCache ? false : true });
   }, [fetchProgress]);
