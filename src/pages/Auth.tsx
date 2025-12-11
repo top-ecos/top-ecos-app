@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertCircle, Stethoscope } from 'lucide-react';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
+import { StorageManager } from '@/shared/lib/storage';
 
 // Map common Supabase auth error messages to French user-friendly text
 const translateAuthError = (message?: string | null): string => {
