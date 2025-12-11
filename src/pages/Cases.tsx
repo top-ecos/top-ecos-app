@@ -1,22 +1,22 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card-premium";
-import { Badge } from "@/components/ui/badge-premium";
-import { Button } from "@/components/ui/button-premium";
-import { SearchInput } from "@/components/ui/input-premium";
-import { EmptyState, Skeleton } from "@/components/ui/stat-tile";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card-premium";
+import { Badge } from "@/shared/components/ui/badge-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { SearchInput } from "@/shared/components/ui/input-premium";
+import { EmptyState, Skeleton } from "@/shared/components/ui/stat-tile";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Clock, CheckCircle, User, Play, Filter, BookOpen, ArrowLeft, Coins, ChevronRight } from "lucide-react";
-import { useProfile } from "@/hooks/useProfile";
-import { useAuth } from "@/contexts/AuthContext";
-import { useSDD, useSddFiltering, SDD } from "@/hooks/useSDD";
-import { deriveTypeLabel } from "@/lib/station";
-import { useStationProgress } from "@/hooks/useStationProgress";
+import { useProfile } from "@/shared/hooks/useProfile";
+import { useAuth } from "@/shared/contexts/AuthContext";
+import { useSDD, useSddFiltering, SDD } from "@/shared/hooks/useSDD";
+import { deriveTypeLabel } from "@/features/station/lib/station";
+import { useStationProgress } from "@/shared/hooks/useStationProgress";
 import { Layout } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { startSimulation } from "@/lib/simulation";
-import { toast } from "@/components/ui/sonner";
-import { isSddPremium, isUserPremium } from "@/lib/premium";
+import { startSimulation } from "@/features/simulation/lib/simulation";
+import { toast } from "@/shared/components/ui/sonner";
+import { isSddPremium, isUserPremium } from "@/shared/lib/premium";
 
 // Security utility functions
 const sanitizeText = (text: string | null | undefined): string => {

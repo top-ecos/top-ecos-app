@@ -6,14 +6,14 @@
  */
 import { useState, useEffect } from 'react';
 import { Layout } from "@/components/Layout";
-import { Card, CardContent } from "@/components/ui/card-premium";
-import { Button } from "@/components/ui/button-premium";
-import { useResults } from "@/hooks/useResults";
-import { useSDD } from "@/hooks/useSDD";
+import { Card, CardContent } from "@/shared/components/ui/card-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { useResults } from "@/shared/hooks/useResults";
+import { useSDD } from "@/shared/hooks/useSDD";
 import { useNavigate, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/shared/components/ui/sonner";
+import { useAuth } from "@/shared/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import RecentSessions from "@/components/RecentSessions";
 import { 

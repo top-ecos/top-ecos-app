@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { useProfile } from '@/shared/hooks/useProfile';
 import { supabase } from '@/integrations/supabase/client';
 import { Layout } from '@/components/Layout';
 import { useNavigate } from 'react-router-dom';
 import { X, Zap, Check } from 'lucide-react';
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/shared/components/ui/sonner";
 
 const Profil = () => {
   const { user } = useAuth();

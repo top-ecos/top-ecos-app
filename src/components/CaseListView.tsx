@@ -1,6 +1,6 @@
 
-import { Button } from "@/components/ui/button-premium";
-import { Badge } from "@/components/ui/badge-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { Badge } from "@/shared/components/ui/badge-premium";
 import { Clock, Play, CheckCircle, RotateCcw } from "lucide-react";
 
 interface Profile {

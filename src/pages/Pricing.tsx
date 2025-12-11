@@ -1,6 +1,6 @@
 import { Layout } from '@/components/Layout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button } from '@/components/ui/button-premium';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { Button } from '@/shared/components/ui/button-premium';
 import { ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 

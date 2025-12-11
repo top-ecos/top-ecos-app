@@ -1,5 +1,5 @@
 
-import { Card, CardContent } from "@/components/ui/card-premium";
+import { Card, CardContent } from "@/shared/components/ui/card-premium";
 import { Loader2, BarChart3 } from "lucide-react";
 
 const LoadingEvaluation = () => {

@@ -9,8 +9,8 @@ import {
   User, 
   LogOut,
 } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import { cn } from '@/lib/utils';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { cn } from '@/shared/lib/utils';
 
 interface SidebarItem {
   id: string;

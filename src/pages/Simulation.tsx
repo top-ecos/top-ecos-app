@@ -1,10 +1,10 @@
 
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import ChatInterface from "@/components/ChatInterface";
-import { useStationProgress } from "@/hooks/useStationProgress";
-import type { CaseData } from "@/types/sdd";
-import type { EvaluationResult } from "@/types/evaluation";
+import ChatInterface from "@/features/simulation/components/ChatInterface";
+import { useStationProgress } from "@/shared/hooks/useStationProgress";
+import type { CaseData } from "@/features/station/types/sdd.types";
+import type { EvaluationResult } from "@/features/evaluation/types/evaluation.types";
 import { supabase } from "@/integrations/supabase/client";
 
 const Simulation = () => {

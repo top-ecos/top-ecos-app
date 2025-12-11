@@ -1,24 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-premium";
-import { Badge } from "@/components/ui/badge-premium";
-import { Button } from "@/components/ui/button-premium";
-import { EmptyState, Skeleton } from "@/components/ui/stat-tile";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card-premium";
+import { Badge } from "@/shared/components/ui/badge-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { EmptyState, Skeleton } from "@/shared/components/ui/stat-tile";
 import { Clock, CheckCircle, Play, ChevronRight, Filter, BookOpen, Coins, Zap } from "lucide-react";
-import { useProfile } from "@/hooks/useProfile";
-import { useAuth } from "@/contexts/AuthContext";
-import { useResults } from "@/hooks/useResults";
-import { useSDD, SDD } from "@/hooks/useSDD";
-import { useStationProgress } from "@/hooks/useStationProgress";
-import { deriveTypeLabel } from "@/lib/station";
-import { getStationOfTheDay, getNextRecommendedStation, getDailySeed } from "@/lib/recommendation";
+import { useProfile } from "@/shared/hooks/useProfile";
+import { useAuth } from "@/shared/contexts/AuthContext";
+import { useResults } from "@/shared/hooks/useResults";
+import { useSDD, SDD } from "@/shared/hooks/useSDD";
+import { useStationProgress } from "@/shared/hooks/useStationProgress";
+import { deriveTypeLabel } from "@/features/station/lib/station";
+import { getStationOfTheDay, getNextRecommendedStation, getDailySeed } from "@/shared/lib/recommendation";
 import RecommendedSddSection from "@/components/RecommendedSddSection";
 import RankedSection from "@/components/RankedSection";
 import { Layout } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { startSimulation } from "@/lib/simulation";
-import { toast } from "@/components/ui/sonner";
-import { isSddPremium } from "@/lib/premium";
+import { startSimulation } from "@/features/simulation/lib/simulation";
+import { toast } from "@/shared/components/ui/sonner";
+import { isSddPremium } from "@/shared/lib/premium";
 import RecentSessions from "@/components/RecentSessions";
 
 // PHOENIX: A new component for displaying token status clearly.

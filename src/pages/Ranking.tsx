@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Layout } from '@/components/Layout';
-import { Card, CardContent } from '@/components/ui/card-premium';
-import { Button } from '@/components/ui/button-premium';
+import { Card, CardContent } from '@/shared/components/ui/card-premium';
+import { Button } from '@/shared/components/ui/button-premium';
 // no skeletons here; use a simple waiting spinner instead
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/shared/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Info, Medal, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useAuth } from '@/contexts/AuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/shared/components/ui/alert';
+import { useProfile } from '@/shared/hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
 
 type RankingRow = {

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Layout } from "@/components/Layout";
-import { Button } from "@/components/ui/button-premium";
-import { useResults } from "@/hooks/useResults";
-import { useSDD } from "@/hooks/useSDD";
+import { Button } from "@/shared/components/ui/button-premium";
+import { useResults } from "@/shared/hooks/useResults";
+import { useSDD } from "@/shared/hooks/useSDD";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "@/shared/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import RecentSessions from "@/components/RecentSessions";
 

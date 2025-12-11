@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Card, CardContent, CardHeader } from "@/components/ui/card-premium";
-import { Badge } from "@/components/ui/badge-premium";
-import { Button } from "@/components/ui/button-premium";
-import { EmptyState, Skeleton } from "@/components/ui/stat-tile";
+import { Card, CardContent, CardHeader } from "@/shared/components/ui/card-premium";
+import { Badge } from "@/shared/components/ui/badge-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { EmptyState, Skeleton } from "@/shared/components/ui/stat-tile";
 import { User, BookOpen, ChevronRight, Info } from "lucide-react";
-import { deriveTypeLabel } from "@/lib/station";
-import { isSddPremium } from "@/lib/premium";
+import { deriveTypeLabel } from "@/features/station/lib/station";
+import { isSddPremium } from "@/shared/lib/premium";
 import type { SDD } from "@/hooks/useSDD";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogDescription, DialogHeader as UIDialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader as UIDialogHeader, DialogTitle, DialogTrigger } from "@/shared/components/ui/dialog";
 
 type RankedSdd = SDD & { ranked?: boolean | null };
 
