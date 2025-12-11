@@ -110,11 +110,23 @@ export async function callOpenAI(systemMessage, userPrompt) {
         
         console.log(`Transformed: ${actionsReussies.length} actions réussies, ${actionsManquees.length} actions manquées`);
         
+        // CRITICAL FIX: Recalculate score_clinique from actual validated actions
+        // This fixes the 1-2 point discrepancy where GPT correctly evaluates but miscounts
+        const recalculatedScoreClinique = actionsReussies.length;
+        
+        // Log discrepancies for monitoring GPT's counting accuracy
+        if (recalculatedScoreClinique !== parsedResult.score_clinique) {
+          console.warn('⚠️ GPT COUNTING ERROR DETECTED AND CORRECTED');
+          console.warn(`GPT claimed: ${parsedResult.score_clinique} points`);
+          console.warn(`Actual validated actions: ${recalculatedScoreClinique}`);
+          console.warn(`Difference: ${Math.abs(recalculatedScoreClinique - parsedResult.score_clinique)} points`);
+        }
+        
         // Construct the final payload for the client (backward compatible)
         transformedResult = {
-          score_clinique: parsedResult.score_clinique,
+          score_clinique: recalculatedScoreClinique,  // ✅ USE ACTUAL COUNT, not GPT's arithmetic
           score_communication: parsedResult.score_communication,
-          note_finale: parsedResult.note_finale,
+          note_finale: parsedResult.note_finale,  // Will be recorrected in validateAndCorrectScores
           actions_reussies: actionsReussies,
           actions_manquees: actionsManquees,
           communication_details: parsedResult.communication_details,
@@ -129,6 +141,21 @@ export async function callOpenAI(systemMessage, userPrompt) {
           result: null,
           error: 'Structure d\'évaluation invalide retournée par l\'IA'
         };
+      }
+      
+      // Additional sanity check: Verify all actions are accounted for
+      if (parsedResult.analyse_detaillee && Array.isArray(parsedResult.analyse_detaillee)) {
+        const totalActionsEvaluated = transformedResult.actions_reussies.length + transformedResult.actions_manquees.length;
+        const expectedTotal = parsedResult.analyse_detaillee.length;
+        
+        if (totalActionsEvaluated !== expectedTotal) {
+          console.error('❌ CRITICAL: Action count mismatch!');
+          console.error(`Actions réussies: ${transformedResult.actions_reussies.length}`);
+          console.error(`Actions manquées: ${transformedResult.actions_manquees.length}`);
+          console.error(`Total counted: ${totalActionsEvaluated}`);
+          console.error(`Expected from analyse_detaillee: ${expectedTotal}`);
+          // Continue anyway but log the discrepancy for investigation
+        }
       }
       return {
         result: transformedResult,
