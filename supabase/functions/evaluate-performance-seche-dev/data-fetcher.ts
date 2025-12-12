@@ -26,7 +26,10 @@ export async function fetchEvaluationDataSeche(sddId) {
     evaluationData.aptitude_communication_id_3,
     evaluationData.aptitude_communication_id_4,
     evaluationData.aptitude_communication_id_5
-  ].filter((id)=>id !== null && id !== undefined).map((id)=>parseInt(id, 10)).filter((id)=>!isNaN(id));
+  ].filter((id)=>id !== null && id !== undefined && id !== '').map((id)=>parseInt(id, 10)).filter((id)=>!isNaN(id));
+  
+  console.log('Communication IDs to fetch:', communicationIds);
+  
   let communicationSkills = [];
   if (communicationIds.length > 0) {
     const { data: skillsData, error: skillsError } = await supabase.from('SDD_Type_A_Eval_2_MVP').select('*').in('aptitude_communication_id', communicationIds);
@@ -39,7 +42,10 @@ export async function fetchEvaluationDataSeche(sddId) {
       };
     }
     communicationSkills = skillsData || [];
+    console.log('Fetched communication skills:', communicationSkills.length, 'skills');
+    console.log('Skills details:', JSON.stringify(communicationSkills, null, 2));
   }
+  
   return {
     data: evaluationData,
     communicationSkills,
