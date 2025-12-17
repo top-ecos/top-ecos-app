@@ -85,7 +85,10 @@ const ChatHeader = ({
               )}
             </div>
             <p className="text-xs sm:text-sm text-[#707070] truncate">
-              {`SDD ${caseData?.official_id ?? caseData?.sdd_id}`}
+              {(() => {
+                const displayId = caseData?.official_id ?? caseData?.station_code ?? null;
+                return displayId ? `SDD ${displayId}` : "SDD";
+              })()}
             </p>
           </div>
 

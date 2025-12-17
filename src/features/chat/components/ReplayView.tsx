@@ -120,7 +120,12 @@ const ReplayView = ({
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center space-x-3 text-xl">
                 <MessageSquare className="h-5 w-5 text-blue-600" />
-                <span>Historique complet - Station {caseData?.official_id ?? ''}</span>
+                <span>
+                  {(() => {
+                    const displayId = caseData?.official_id ?? caseData?.station_code ?? null;
+                    return `Historique complet${displayId ? ` - Station ${displayId}` : ""}`;
+                  })()}
+                </span>
               </CardTitle>
               {caseData?.consignes_etudiant && (
                 <button

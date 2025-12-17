@@ -30,6 +30,14 @@ type MockResultRow = {
   typologie: string | null;
 };
 
+type SddLiteRow = {
+  official_id: string | null;
+  sdd_titre: string | null;
+  consignes_etudiant: string | null;
+  include_documents: boolean | null;
+  sdd_type: string | null;
+};
+
 const isMessageRole = (role: unknown): role is MessageRole =>
   role === "user" || role === "assistant" || role === "system";
 
@@ -125,14 +133,28 @@ const HistoryEvaluationPage = () => {
         }
 
         const row = data as unknown as MockResultRow;
+        const stationUuid = String(row.station_id);
+
+        const { data: sddRow, error: sddError } = await supabase
+          .from("sdds")
+          .select("official_id, sdd_titre, consignes_etudiant, include_documents, sdd_type")
+          .eq("sdd_id", stationUuid)
+          .maybeSingle();
+
+        if (sddError) {
+          console.error("Error fetching station metadata for history evaluation:", sddError);
+        }
+
+        const stationMeta = (sddRow ?? null) as SddLiteRow | null;
 
         const builtCase: CaseData = {
-          sdd_id: String(row.station_id),
-          sdd_titre: row.station_title,
-          Type_de_station: row.typologie || "PS",
-          consignes_etudiant: null,
-          include_documents: null,
-          sdd_type: null,
+          sdd_id: stationUuid,
+          sdd_titre: row.station_title ?? stationMeta?.sdd_titre ?? null,
+          Type_de_station: row.typologie || stationMeta?.sdd_type || "PS",
+          consignes_etudiant: stationMeta?.consignes_etudiant ?? null,
+          include_documents: stationMeta?.include_documents ?? null,
+          sdd_type: stationMeta?.sdd_type ?? null,
+          official_id: stationMeta?.official_id ?? null,
         };
 
         const builtEvaluation: EvaluationResult = {
