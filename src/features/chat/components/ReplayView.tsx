@@ -1,6 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/components/ui/card";
-import { User, MessageSquare, RotateCcw, Play, PlayCircle, Info, X } from "lucide-react";
+import { ChevronLeft, User, MessageSquare, RotateCcw, Play, PlayCircle, Info, X } from "lucide-react";
 import { useState } from "react";
 import { Message } from "@/features/chat/types/message.types";
 import { CaseData } from "@/features/station/types/sdd.types";
@@ -13,6 +13,8 @@ interface ReplayViewProps {
   onShowEvaluation: () => void;
   onResetStation: () => void;
   onBackToHome: () => void;
+  backLabel?: string;
+  hideResetStation?: boolean;
 }
 
 const ReplayView = ({ 
@@ -21,7 +23,9 @@ const ReplayView = ({
   onBack, 
   onShowEvaluation, 
   onResetStation, 
-  onBackToHome 
+  onBackToHome,
+  backLabel = "Retour",
+  hideResetStation = false,
 }: ReplayViewProps) => {
   const conversationMessages = messages.filter(m => m.role !== 'system');
   const [showConsignes, setShowConsignes] = useState(false);
@@ -32,7 +36,18 @@ const ReplayView = ({
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">Replay pédagogique</h1>
+            <div className="min-w-0 flex items-center gap-3">
+              <button
+                onClick={onBack}
+                className="h-10 w-10 sm:h-auto sm:w-auto inline-flex items-center justify-center sm:justify-start rounded-full border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition px-0 sm:px-4 py-0 sm:py-2"
+                aria-label={backLabel}
+                title={backLabel}
+              >
+                <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{backLabel}</span>
+              </button>
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">Replay pédagogique</h1>
+            </div>
 
             {/* Desktop controls */}
             <div className="hidden lg:flex items-center gap-3">
@@ -44,16 +59,18 @@ const ReplayView = ({
                 <Play className="h-4 w-4 mr-2" />
                 Voir l'évaluation
               </button>
-              <button
-                onClick={() => {
-                  if (window.confirm('Recommencer cette station ? Votre progression locale sera effacée.')) onResetStation();
-                }}
-                className="inline-flex items-center rounded-full border-2 px-4 py-2 text-sm font-medium border-[#4299F6] text-[#4299F6] hover:bg-blue-50 transition"
-                aria-label="Recommencer la station"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Recommencer
-              </button>
+              {!hideResetStation && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Recommencer cette station ? Votre progression locale sera effacée.')) onResetStation();
+                  }}
+                  className="inline-flex items-center rounded-full border-2 px-4 py-2 text-sm font-medium border-[#4299F6] text-[#4299F6] hover:bg-blue-50 transition"
+                  aria-label="Recommencer la station"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Recommencer
+                </button>
+              )}
               <button
                 onClick={() => (window.location.href = "/cases")}
                 className="inline-flex items-center rounded-full border-2 px-4 py-2 text-sm font-medium border-[#2ECC71] text-[#2ECC71] hover:bg-green-50 transition"
@@ -73,15 +90,17 @@ const ReplayView = ({
               >
                 <PlayCircle className="h-5 w-5" />
               </button>
-              <button
-                onClick={() => {
-                  if (window.confirm('Recommencer cette station ? Votre progression locale sera effacée.')) onResetStation();
-                }}
-                className="h-10 w-10 inline-flex items-center justify-center rounded-full border-2 border-[#4299F6] text-[#4299F6] hover:bg-blue-50"
-                aria-label="Recommencer la station"
-              >
-                <RotateCcw className="h-5 w-5" />
-              </button>
+              {!hideResetStation && (
+                <button
+                  onClick={() => {
+                    if (window.confirm('Recommencer cette station ? Votre progression locale sera effacée.')) onResetStation();
+                  }}
+                  className="h-10 w-10 inline-flex items-center justify-center rounded-full border-2 border-[#4299F6] text-[#4299F6] hover:bg-blue-50"
+                  aria-label="Recommencer la station"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                </button>
+              )}
               <button
                 onClick={() => (window.location.href = "/cases")}
                 className="h-10 w-10 inline-flex items-center justify-center rounded-full border-2 border-[#2ECC71] text-[#2ECC71] hover:bg-green-50"
