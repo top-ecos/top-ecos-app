@@ -12,3 +12,4 @@ yarn-error.log*
 # Ignore Markdown files (keep root README.md)
 *.md
 !README.md
+.DS_Store
