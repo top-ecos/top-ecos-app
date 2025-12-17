@@ -35,7 +35,7 @@ export const ActionsList = ({ actions_reussies, actions_manquees }: ActionsListP
   return (
     <div className="space-y-4">
       {/* Actions réussies (No changes here) */}
-      <Card className="text-[#03BB26]">
+      <Card className="text-[#03BB26] bg-white">
         <CardHeader>
           <CardTitle className="text-[#03BB26]">
             Actions cliniques réussies ({actions_reussies.length})
@@ -60,7 +60,7 @@ export const ActionsList = ({ actions_reussies, actions_manquees }: ActionsListP
 
       {/* Actions manquées - With Static Fade-out */}
       {hasMissedActions && (
-        <Card className="text-[#E74C3C]">
+        <Card className="text-[#E74C3C] bg-white">
           <CardHeader>
             <CardTitle className="text-[#E74C3C]">
               Actions cliniques manquées ({actions_manquees.length})
