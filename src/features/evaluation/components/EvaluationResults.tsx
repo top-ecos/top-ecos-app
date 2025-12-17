@@ -69,6 +69,9 @@ const EvaluationResults = ({ result, stationTitle, stationId }: EvaluationResult
   // Helper to convert text color (text-green-600) to background color (bg-green-600) for the gauge
   const getProgressColor = (score: number, max: number) => {
     const colorClass = getScoreColor(score, max);
+    if (colorClass === 'text-warning') {
+      return 'bg-orange-500'; // Custom orange color for mid-performance
+    }
     return colorClass ? colorClass.replace('text-', 'bg-') : undefined;
   };
 

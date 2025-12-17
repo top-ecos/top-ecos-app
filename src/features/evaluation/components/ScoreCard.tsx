@@ -32,8 +32,12 @@ export const ScoreCard = ({
   const percentage = (score / maxScore) * 100;
   const displayScore = typeof score === 'number' ? score.toFixed(2) : score;
   const primaryHex = '#03BB26';
+  const orangeHex = '#F39C12';
   const isPrimaryGreenScore = isPrimary && typeof scoreColor === 'string' && scoreColor.includes('text-primary');
   const isPrimaryGreenBadge = isPrimary && typeof badgeColor === 'string' && badgeColor.includes('text-primary');
+  const isOrangeProgressBar = progressColor && progressColor.includes('bg-orange');
+  const isOrangeScore = scoreColor === 'text-warning';
+  const isOrangeBadge = badgeColor && badgeColor.includes('text-warning');
 
   return (
     <Card className={`bg-white ${isPrimary ? "border-2 shadow-md" : ""}`} style={isPrimary ? { borderColor: primaryHex } : undefined}>
@@ -46,7 +50,10 @@ export const ScoreCard = ({
       <CardContent className="text-center">
         <div
           className={`${isPrimary ? 'text-4xl' : 'text-3xl'} font-bold ${scoreColor} mb-2`}
-          style={isPrimaryGreenScore ? { color: primaryHex } : undefined}
+          style={{
+            ...(isPrimaryGreenScore ? { color: primaryHex } : {}),
+            ...(isOrangeScore ? { color: orangeHex } : {})
+          }}
         >
           {displayScore}/{maxScore}
         </div>
@@ -56,7 +63,8 @@ export const ScoreCard = ({
               className={`h-2 rounded-full transition-all duration-500 ${progressColor || 'bg-muted'}`}
               style={{
                 width: `${Math.min(percentage, 100)}%`,
-                ...(isPrimary && progressColor?.includes('bg-primary') ? { backgroundColor: primaryHex } : {})
+                ...(isPrimary && progressColor?.includes('bg-primary') ? { backgroundColor: primaryHex } : {}),
+                ...(isOrangeProgressBar ? { backgroundColor: orangeHex } : {})
               }}
             />
           </div>
@@ -65,14 +73,21 @@ export const ScoreCard = ({
         {/* Container for badges to sit side-by-side */}
         <div className="flex justify-center items-center gap-2 flex-wrap">
           {description && (
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className={badgeColor}
-              style={isPrimaryGreenBadge ? { 
-                color: primaryHex,
-                backgroundColor: 'rgba(3, 187, 38, 0.10)',
-                borderColor: 'rgba(3, 187, 38, 0.20)'
-              } : undefined}
+              style={{
+                ...(isPrimaryGreenBadge ? {
+                  color: primaryHex,
+                  backgroundColor: 'rgba(3, 187, 38, 0.10)',
+                  borderColor: 'rgba(3, 187, 38, 0.20)'
+                } : {}),
+                ...(isOrangeBadge ? {
+                  color: orangeHex,
+                  backgroundColor: 'rgba(243, 156, 18, 0.10)',
+                  borderColor: 'rgba(243, 156, 18, 0.20)'
+                } : {})
+              }}
             >
               {description}
             </Badge>
