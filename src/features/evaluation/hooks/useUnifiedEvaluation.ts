@@ -52,13 +52,19 @@ export const useUnifiedEvaluation = (caseData: CaseData, messages?: Message[]) =
    */
   const getEvaluationFunctionName = useCallback((): string => {
     const useGPT5 = import.meta.env.VITE_USE_GPT5_EVALUATION === 'true';
+    const isPremium = profile?.premium || false;
     
     if (isSecheStation) {
       return useGPT5 ? 'evaluate-performance-seche-dev' : 'evaluate-performance-seche';
     }
     
+    // Use premium function for premium users when GPT5 is enabled
+    if (useGPT5 && isPremium) {
+      return 'evaluate-performance-dev-premium';
+    }
+    
     return useGPT5 ? 'evaluate-performance-dev' : 'evaluate-performance';
-  }, [isSecheStation]);
+  }, [isSecheStation, profile?.premium]);
 
   /**
    * Calculate session analytics metrics
@@ -128,6 +134,7 @@ export const useUnifiedEvaluation = (caseData: CaseData, messages?: Message[]) =
             actions_manquees: data.actions_manquees || [],
             communication_details: data.communication_details || null
           },
+          ai_recommendations: data.ai_recommendations || null,
           session_start_time: sessionStartTime.toISOString(),
           evaluation_time: sessionEndTime.toISOString(),
           message_count: messageCount,

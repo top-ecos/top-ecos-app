@@ -28,6 +28,7 @@ type MockResultRow = {
   station_id: string | number;
   station_title: string | null;
   typologie: string | null;
+  ai_recommendations?: EvaluationResult["ai_recommendations"];
 };
 
 type SddLiteRow = {
@@ -120,7 +121,7 @@ const HistoryEvaluationPage = () => {
         const { data, error } = await supabase
           .from("mock_results")
           .select(
-            "score, feedback, transcript_json, score_clinique, score_communication, score_phase_1, score_phase_2, evaluation_details, station_id, station_title, typologie"
+            "score, feedback, transcript_json, score_clinique, score_communication, score_phase_1, score_phase_2, evaluation_details, station_id, station_title, typologie, ai_recommendations"
           )
           .eq("id", resultId)
           .single();
@@ -168,6 +169,7 @@ const HistoryEvaluationPage = () => {
           score_phase_1: row.score_phase_1 ?? null,
           score_phase_2: row.score_phase_2 ?? null,
           transcript_json: Array.isArray(row.transcript_json) ? row.transcript_json : [],
+          ai_recommendations: row.ai_recommendations ?? null,
         };
 
         if (!isMounted) return;

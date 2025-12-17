@@ -87,7 +87,8 @@ export const useSecheEvaluation = (caseData: CaseData) => {
             actions_manquees: data.actions_manquees || [],
             communication_details: data.communication_details || null
           },
-              session_start_time: sessionStartTime.toISOString(),
+          ai_recommendations: data.ai_recommendations || null,
+          session_start_time: sessionStartTime.toISOString(),
               evaluation_time: sessionEndTime.toISOString(),
               message_count: messageCount,
               avg_response_time_seconds: messageCount > 0 ? Math.round(durationMs / messageCount / 1000) : null,

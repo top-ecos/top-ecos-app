@@ -24,10 +24,17 @@ export const useEvaluation = (caseData: CaseData, messages: Message[]) => {
 
       // Choisir la bonne Edge Function selon le type de station et l'environnement
       const useGPT5 = import.meta.env.VITE_USE_GPT5_EVALUATION === 'true';
+      const isPremium = profile?.premium || false;
 
-      const functionName = caseData.Type_de_station === 'Sèche' 
-        ? (useGPT5 ? 'evaluate-performance-seche-dev' : 'evaluate-performance-seche')
-        : (useGPT5 ? 'evaluate-performance-dev' : 'evaluate-performance');
+      let functionName: string;
+      if (caseData.Type_de_station === 'Sèche') {
+        functionName = useGPT5 ? 'evaluate-performance-seche-dev' : 'evaluate-performance-seche';
+      } else {
+        // Use premium function for premium users when GPT5 is enabled
+        functionName = (useGPT5 && isPremium) 
+          ? 'evaluate-performance-dev-premium' 
+          : (useGPT5 ? 'evaluate-performance-dev' : 'evaluate-performance');
+      }
 
       const { data, error } = await supabase.functions.invoke(functionName, {
         body: {
@@ -95,6 +102,7 @@ export const useEvaluation = (caseData: CaseData, messages: Message[]) => {
             actions_manquees: data.actions_manquees || [],
             communication_details: data.communication_details || null
           },
+          ai_recommendations: data.ai_recommendations || null,
               session_start_time: sessionStartTime.toISOString(),
               evaluation_time: sessionEndTime.toISOString(),
               message_count: messageCount,

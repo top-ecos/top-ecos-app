@@ -3,6 +3,7 @@ import { ScoreCard } from "./ScoreCard";
 import { ActionsList } from "./ActionsList";
 import { CommunicationGrid } from "./CommunicationGrid";
 import { ScoreChart } from "./ScoreChart";
+import RecommendationsSection from "./RecommendationsSection";
 import { useEvaluationScores } from "../hooks/useEvaluationScores";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,6 +123,11 @@ const EvaluationResults = ({ result, stationTitle, stationId }: EvaluationResult
 
       {/* Communication détaillée */}
       <CommunicationGrid communication_details={result.communication_details} />
+
+      {/* AI Recommendations for Premium Users */}
+      {result.ai_recommendations && (
+        <RecommendationsSection recommendations={result.ai_recommendations} />
+      )}
 
       {/* Conseils pédagogiques retirés selon les spécifications */}
     </div>

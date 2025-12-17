@@ -4,6 +4,14 @@ export type TranscriptMessage = {
   timestamp?: string;
 };
 
+export interface AIRecommendation {
+  intro: string;
+  bullets: Array<{
+    title: string;
+    explanation: string;
+  }>;
+}
+
 export interface EvaluationResult {
   score_clinique: number;
   score_communication: number;
@@ -17,5 +25,6 @@ export interface EvaluationResult {
   score_phase_1?: number | null;
   score_phase_2?: number | null;
   transcript_json?: TranscriptMessage[];
+  ai_recommendations?: AIRecommendation | null;
 }
 
