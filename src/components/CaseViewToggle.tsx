@@ -1,5 +1,5 @@
 
-import { Button } from "@/components/ui/button-premium";
+import { Button } from "@/shared/components/ui/button-premium";
 import { Grid3X3, List } from "lucide-react";
 
 interface CaseViewToggleProps {

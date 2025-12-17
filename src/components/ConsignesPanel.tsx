@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { Card, CardContent } from "@/components/ui/card-premium";
+import { Card, CardContent } from "@/shared/components/ui/card-premium";
 import { ChevronLeft, FileText, Maximize2, Minimize2, ExternalLink, Download, ZoomIn, ZoomOut, ChevronRight, X, File, Image as ImageIcon } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/shared/components/ui/tabs";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/shared/components/ui/dialog";
+import { Button } from "@/shared/components/ui/button";
+import { Badge } from "@/shared/components/ui/badge";
+import { CaseData } from "@/features/station/types/sdd.types";
 
 interface Document {
   url: string;
@@ -13,7 +14,7 @@ interface Document {
 }
 
 interface ConsignesPanelProps {
-  caseData: any;
+  caseData: CaseData;
   onLayoutChange?: (width: number) => void;
   onExpandedChange?: (isExpanded: boolean) => void;
   onCollapse?: () => void;
@@ -107,7 +108,7 @@ const ConsignesPanel = ({
     setIsCollapsed(false);
     // Marquer comme vu dans localStorage pour que l'indicateur disparaisse définitivement
     if (caseData?.sdd_id) {
-      localStorage.setItem(`hasSeenConsignes_${caseData.sdd_id}`, 'true');
+      StorageManager.setConsignesSeen(caseData.sdd_id);
     }
   };
 

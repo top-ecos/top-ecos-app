@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card-premium";
-import { Badge } from "@/components/ui/badge-premium";
-import { Button } from "@/components/ui/button-premium";
-import { EmptyState, Skeleton } from "@/components/ui/stat-tile";
-import { deriveTypeLabel } from "@/lib/station";
+import { Card, CardContent } from "@/shared/components/ui/card-premium";
+import { Badge } from "@/shared/components/ui/badge-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { EmptyState, Skeleton } from "@/shared/components/ui/stat-tile";
+import { deriveTypeLabel } from "@/features/station/lib/station";
 import { formatDistance } from "date-fns";
 import { fr } from "date-fns/locale";
 import { Link } from "react-router-dom";

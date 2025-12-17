@@ -1,25 +1,26 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card-premium";
-import { Badge } from "@/components/ui/badge-premium";
-import { Button } from "@/components/ui/button-premium";
-import { EmptyState, Skeleton } from "@/components/ui/stat-tile";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/components/ui/card-premium";
+import { Badge } from "@/shared/components/ui/badge-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { EmptyState, Skeleton } from "@/shared/components/ui/stat-tile";
 import { Clock, CheckCircle, Play, ChevronRight, Filter, BookOpen, Coins, Zap } from "lucide-react";
-import { useProfile } from "@/hooks/useProfile";
-import { useAuth } from "@/contexts/AuthContext";
-import { useResults } from "@/hooks/useResults";
-import { useSDD, SDD } from "@/hooks/useSDD";
-import { useStationProgress } from "@/hooks/useStationProgress";
-import { deriveTypeLabel } from "@/lib/station";
-import { getStationOfTheDay, getNextRecommendedStation, getDailySeed } from "@/lib/recommendation";
+import { useProfile } from "@/shared/hooks/useProfile";
+import { useAuth } from "@/shared/contexts/AuthContext";
+import { useResults } from "@/shared/hooks/useResults";
+import { useSDD, SDD } from "@/shared/hooks/useSDD";
+import { useStationProgress } from "@/shared/hooks/useStationProgress";
+import { deriveTypeLabel } from "@/features/station/lib/station";
+import { getStationOfTheDay, getNextRecommendedStation, getDailySeed } from "@/shared/lib/recommendation";
 import RecommendedSddSection from "@/components/RecommendedSddSection";
 import RankedSection from "@/components/RankedSection";
 import { Layout } from "@/components/Layout";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { startSimulation } from "@/lib/simulation";
-import { toast } from "@/components/ui/sonner";
-import { isSddPremium } from "@/lib/premium";
+import { startSimulation } from "@/features/simulation/lib/simulation";
+import { toast } from "@/shared/components/ui/sonner";
+import { isSddPremium } from "@/shared/lib/premium";
 import RecentSessions from "@/components/RecentSessions";
+import { StorageManager } from "@/shared/lib/storage";
 
 // PHOENIX: A new component for displaying token status clearly.
 const TokenStatus = ({ tokens }: { tokens: number }) => {
@@ -84,20 +85,15 @@ const Dashboard = () => {
   // --- User Profile & Premium Status ---
   // PHOENIX: Caching premium status is a good strategy to prevent UI flicker on reloads.
   const [cachedPremium, setCachedPremium] = useState<boolean | null>(() => {
-    try {
-      const raw = localStorage.getItem('profileCacheV1');
-      if (raw) return Boolean(JSON.parse(raw)?.data?.premium);
-    } catch {}
-    return null;
+    const cache = StorageManager.getProfileCache();
+    return cache ? Boolean(cache.data.premium) : null;
   });
   const isPremiumEffective = typeof profile?.premium === 'boolean' ? Boolean(profile.premium) : Boolean(cachedPremium);
   useEffect(() => {
     if (typeof profile?.premium === 'boolean') {
-      try {
-        const raw = localStorage.getItem('profileCacheV1');
-        const obj = raw ? JSON.parse(raw) : {};
-        localStorage.setItem('profileCacheV1', JSON.stringify({ ...obj, data: { ...obj.data, premium: profile.premium } }));
-      } catch {}
+      const cache = StorageManager.getProfileCache();
+      const data = { ...cache?.data, premium: profile.premium };
+      StorageManager.setProfileCache(data);
     }
   }, [profile?.premium]);
 
@@ -105,20 +101,16 @@ const Dashboard = () => {
   // --- Greeting Name ---
   // PHOENIX: Cache-first approach for the user's name remains effective for a personalized feel.
   const [displayName, setDisplayName] = useState<string | null>(() => {
-    try {
-      const raw = localStorage.getItem('lastFirstNameCache');
-      if (!raw) return null;
-      const obj = JSON.parse(raw);
-      if (obj && typeof obj.name === 'string' && (Date.now() - obj.ts) < 30 * 24 * 60 * 60 * 1000) {
-        return obj.name;
-      }
-    } catch {}
+    const cache = StorageManager.getLastFirstNameCache();
+    if (cache && (Date.now() - cache.ts) < 30 * 24 * 60 * 60 * 1000) {
+      return cache.name;
+    }
     return null;
   });
   useEffect(() => {
     if (profile?.first_name) {
       setDisplayName(profile.first_name);
-      try { localStorage.setItem('lastFirstNameCache', JSON.stringify({ name: profile.first_name, ts: Date.now() })); } catch {}
+      StorageManager.setLastFirstNameCache(profile.first_name);
     }
   }, [profile?.first_name]);
 
@@ -130,16 +122,14 @@ const Dashboard = () => {
   // ---------- Recommendation logic (Station du jour) ----------
   // PHOENIX: Caching the last recommended SDD avoids jarring changes on page re-visits.
   const [heroSdd, setHeroSdd] = useState<SDD | null>(() => {
-    try {
-      const raw = localStorage.getItem('lastRecommendedSddV2');
-      if (!raw) return null;
-      const obj = JSON.parse(raw);
+    const cache = StorageManager.getLastRecommendedSdd();
+    if (cache) {
       const todaySeed = getDailySeed();
       // Check if cache is from today (using seed) to enforce daily rotation
-      if (obj && obj.dateSeed === todaySeed && obj.data) {
-        return obj.data as SDD;
+      if ((cache.data as any).dateSeed === todaySeed && cache.data) {
+        return cache.data as SDD;
       }
-    } catch {}
+    }
     return null;
   });
 
@@ -149,7 +139,7 @@ const Dashboard = () => {
 
     const completedIds = new Set<string>();
     if (progressMap) {
-      progressMap.forEach((val: any, key: string) => {
+      progressMap.forEach((val: { is_completed: boolean }, key: string) => {
         if (val.is_completed) completedIds.add(key);
       });
     }
@@ -161,71 +151,18 @@ const Dashboard = () => {
   useEffect(() => {
     if (recommendedSdd) {
       setHeroSdd(recommendedSdd);
-      try { 
-        localStorage.setItem('lastRecommendedSddV2', JSON.stringify({ 
-          ts: Date.now(), 
-          dateSeed: getDailySeed(),
-          data: recommendedSdd 
-        })); 
-      } catch {}
+      StorageManager.setLastRecommendedSdd({ 
+        dateSeed: getDailySeed(),
+        ...recommendedSdd 
+      });
     }
   }, [recommendedSdd]);
 
   // Use the calculated recommended SDD if available, otherwise stick with the cached one.
   const currentSdd = recommendedSdd || heroSdd;
 
-  const handleViewEvaluation = async (result: any) => {
-    try {
-      // Prepare minimal case data for Simulation page
-      const sddMatch = (sddList || []).find((s) => String(s.sdd_id) === String(result.station_id));
-      const minimalCase = {
-        sdd_id: String(result.station_id),
-        sdd_titre: result.station_title,
-        Type_de_station: result.typologie || 'PS',
-        consignes_etudiant: sddMatch?.consignes_etudiant || null,
-        include_documents: sddMatch?.include_documents ?? null,
-        sdd_type: sddMatch?.sdd_type ?? null
-      } as any;
-      sessionStorage.setItem('selectedCase', JSON.stringify(minimalCase));
-      sessionStorage.removeItem('initialPatientMessage');
-
-      // Fetch full result row on demand (lite mode used on Home)
-      const { data: fullRow, error } = await supabase
-        .from('mock_results')
-        .select(`
-          score,
-          feedback,
-          transcript_json,
-          score_clinique,
-          score_communication,
-          score_phase_1,
-          score_phase_2,
-          evaluation_details
-        `)
-        .eq('id', result.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching full result for evaluation view:', error);
-      }
-
-      const preloaded = {
-        score_clinique: fullRow?.score_clinique ?? 0,
-        score_communication: fullRow?.score_communication ?? 0,
-        note_finale: fullRow?.score ?? (result.score ?? 0),
-        actions_reussies: fullRow?.evaluation_details?.actions_reussies ?? [],
-        actions_manquees: fullRow?.evaluation_details?.actions_manquees ?? [],
-        communication_details: fullRow?.evaluation_details?.communication_details ?? {},
-        feedback: fullRow?.feedback ?? '',
-        transcript_json: fullRow?.transcript_json ?? []
-      };
-      sessionStorage.setItem('preloadedEvaluation', JSON.stringify(preloaded));
-
-      navigate('/simulation');
-    } catch (e) {
-      console.error('Error preparing evaluation view:', e);
-      toast.error("Impossible d'ouvrir la grille d'évaluation.");
-    }
+  const handleViewEvaluation = (result: SessionResult) => {
+    navigate(`/history-evaluation/${result.id}`, { state: { from: "/" } });
   };
 
   const handleStartSimulation = async (sdd: SDD) => {
@@ -255,9 +192,10 @@ const Dashboard = () => {
         sanitizeMessage: false,
       });
       navigate('/simulation');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error starting station:', error);
-      toast.error(error?.message || 'Erreur lors du démarrage de la simulation. Veuillez réessayer.');
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du démarrage de la simulation. Veuillez réessayer.';
+      toast.error(errorMessage);
       // Refresh profile to get current token state
       if (profile && user) {
         try {

@@ -1,7 +1,7 @@
 
-import { SearchInput } from "@/components/ui/input-premium";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge-premium";
+import { SearchInput } from "@/shared/components/ui/input-premium";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import { Badge } from "@/shared/components/ui/badge-premium";
 import { Filter } from "lucide-react";
 
 interface CaseFiltersProps {

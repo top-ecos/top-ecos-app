@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Layout } from '@/components/Layout';
-import { Card, CardContent } from '@/components/ui/card-premium';
-import { Button } from '@/components/ui/button-premium';
+import { Card, CardContent } from '@/shared/components/ui/card-premium';
+import { Button } from '@/shared/components/ui/button-premium';
 // no skeletons here; use a simple waiting spinner instead
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/shared/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Info, Medal, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { useAuth } from '@/contexts/AuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useProfile } from '@/hooks/useProfile';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/shared/components/ui/alert';
+import { useProfile } from '@/shared/hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
 
 type RankingRow = {
@@ -116,20 +116,22 @@ const Ranking = () => {
   // Premium gating (align with Home logic)
   const { profile, loading: profileLoading } = useProfile();
   const [cachedPremium, setCachedPremium] = useState<boolean | null>(() => {
-    try {
-      const raw = localStorage.getItem('profileCacheV1');
-      if (raw) return Boolean(JSON.parse(raw)?.data?.premium);
-    } catch {}
-    return null;
+    const cache = typeof StorageManager?.getProfileCache === 'function'
+      ? StorageManager.getProfileCache()
+      : null;
+    return cache ? Boolean(cache.data.premium) : null;
   });
   const isPremiumEffective = typeof profile?.premium === 'boolean' ? Boolean(profile.premium) : Boolean(cachedPremium);
   useEffect(() => {
-    if (typeof profile?.premium === 'boolean') {
-      try {
-        const raw = localStorage.getItem('profileCacheV1');
-        const obj = raw ? JSON.parse(raw) : {};
-        localStorage.setItem('profileCacheV1', JSON.stringify({ ...obj, data: { ...obj.data, premium: profile.premium } }));
-      } catch {}
+    if (typeof profile?.premium !== 'boolean') return;
+
+    const cache = typeof StorageManager?.getProfileCache === 'function'
+      ? StorageManager.getProfileCache()
+      : null;
+    const data = { ...cache?.data, premium: profile.premium };
+
+    if (typeof StorageManager?.setProfileCache === 'function') {
+      StorageManager.setProfileCache(data);
     }
   }, [profile?.premium]);
 
@@ -176,8 +178,9 @@ const Ranking = () => {
           } else if (active) {
             setTotalRankedCount(total ?? 0);
           }
-        } catch (e: any) {
-          console.warn('Unexpected count error:', e?.message);
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+          console.warn('Unexpected count error:', errorMessage);
           if (active) setTotalRankedCount(null);
         }
 
@@ -208,8 +211,9 @@ const Ranking = () => {
                 } else if (active) {
                   setMyRank(((ahead ?? 0) + 1));
                 }
-              } catch (e: any) {
-                console.warn('Unexpected ahead count error:', e?.message);
+              } catch (e: unknown) {
+                const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+                console.warn('Unexpected ahead count error:', errorMessage);
                 if (active) setMyRank(null);
               }
             } else {
@@ -220,9 +224,10 @@ const Ranking = () => {
           setMyRow(null);
           setMyRank(null);
         }
-      } catch (e: any) {
+      } catch (e: unknown) {
         if (!active) return;
-        setError(e?.message || 'Erreur lors du chargement du classement.');
+        const errorMessage = e instanceof Error ? e.message : 'Erreur lors du chargement du classement.';
+        setError(errorMessage);
         setRows([]);
       } finally {
         if (active) setLoading(false);

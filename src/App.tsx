@@ -1,10 +1,10 @@
 
 import { Suspense, lazy } from "react";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/shared/components/ui/sonner";
+import { TooltipProvider } from "@/shared/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthProvider } from "@/shared/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 const Auth = lazy(() => import("./pages/Auth"));
 const Cases = lazy(() => import("./pages/Cases"));
@@ -12,9 +12,10 @@ const Home = lazy(() => import("./pages/home"));
 const Profil = lazy(() => import("./pages/Profil"));
 const Dashboard = lazy(() => import("./pages/dashboard"));
 const History = lazy(() => import("./pages/history"));
+const HistoryEvaluation = lazy(() => import("./pages/HistoryEvaluation"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Ranking = lazy(() => import("./pages/Ranking"));
-import { LazySimulation } from "./pages/LazySimulation";
+import { LazySimulation } from "@/features/simulation/components/LazySimulation";
 
 const queryClient = new QueryClient();
 
@@ -122,6 +123,23 @@ function App() {
                       </div>
                     }>
                       <History />
+                    </Suspense>
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/history-evaluation/:resultId" 
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen bg-surface-alt flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+                          <p className="text-subtext">Chargement de l&apos;évaluation...</p>
+                        </div>
+                      </div>
+                    }>
+                      <HistoryEvaluation />
                     </Suspense>
                   </ProtectedRoute>
                 } 

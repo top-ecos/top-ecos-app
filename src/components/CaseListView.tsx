@@ -1,30 +1,21 @@
 
-import { Button } from "@/components/ui/button-premium";
-import { Badge } from "@/components/ui/badge-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { Badge } from "@/shared/components/ui/badge-premium";
 import { Clock, Play, CheckCircle, RotateCcw } from "lucide-react";
-
-interface Profile {
-  id: string;
-  user_id: string;
-  first_name: string | null;
-  last_name: string | null;
-  level: string;
-  tokens: number;
-  created_at: string;
-  updated_at: string;
-}
+import { Profile } from "@/shared/types/profile.types";
+import { CaseData } from "@/features/station/types/sdd.types";
 
 interface CaseListViewProps {
-  cases: any[];
-  onStartSimulation: (caseData: any) => void;
-  onResetStation: (caseData: any) => void;
+  cases: CaseData[];
+  onStartSimulation: (caseData: CaseData) => void;
+  onResetStation: (caseData: CaseData) => void;
   startingStationId: string | null;
   isStationCompleted: (stationId: number) => boolean;
   profile: Profile | null;
 }
 
 const CaseListView = ({ cases, onStartSimulation, onResetStation, startingStationId, isStationCompleted, profile }: CaseListViewProps) => {
-  const getStatusBadge = (caseData: any) => {
+  const getStatusBadge = (caseData: CaseData) => {
     const isCompleted = isStationCompleted(caseData.sdd_id);
     
     return isCompleted ? (

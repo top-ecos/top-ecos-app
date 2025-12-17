@@ -6,14 +6,12 @@
  */
 import { useState, useEffect } from 'react';
 import { Layout } from "@/components/Layout";
-import { Card, CardContent } from "@/components/ui/card-premium";
-import { Button } from "@/components/ui/button-premium";
-import { useResults } from "@/hooks/useResults";
-import { useSDD } from "@/hooks/useSDD";
+import { Card, CardContent } from "@/shared/components/ui/card-premium";
+import { Button } from "@/shared/components/ui/button-premium";
+import { useResults } from "@/shared/hooks/useResults";
 import { useNavigate, Link } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/shared/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import RecentSessions from "@/components/RecentSessions";
 import { 
@@ -142,8 +140,9 @@ const useDashboardData = (userId: string | undefined, timeFilter: TimeFilter) =>
         
         setData(formattedData);
 
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e: unknown) {
+        const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+        setError(errorMessage);
         console.error("Error fetching dashboard data:", e);
       } finally {
         setLoading(false);
@@ -171,54 +170,16 @@ const getSpecialtyScoreColor = (score: number) => {
 
 // --- 4. MAIN DASHBOARD COMPONENT (Unchanged, but will now re-render the KPI card correctly) ---
 
-async function handleViewEvaluation(result: any, sddList: any[] | undefined, navigate: any) {
-  try {
-    const sddMatch = (sddList || []).find((s: any) => String(s.sdd_id) === String(result.station_id));
-    const minimalCase = {
-      sdd_id: String(result.station_id),
-      sdd_titre: result.station_title,
-      Type_de_station: result.typologie || 'PS',
-      consignes_etudiant: sddMatch?.consignes_etudiant || null,
-      include_documents: sddMatch?.include_documents ?? null,
-      sdd_type: sddMatch?.sdd_type ?? null
-    } as any;
-    sessionStorage.setItem('selectedCase', JSON.stringify(minimalCase));
-    sessionStorage.removeItem('initialPatientMessage');
+import { SessionResult } from "@/shared/types/results.types";
 
-    const { data: fullRow, error } = await supabase
-      .from('mock_results')
-      .select(`score, feedback, transcript_json, score_clinique, score_communication, score_phase_1, score_phase_2, evaluation_details`)
-      .eq('id', result.id)
-      .single();
-
-    if (error) {
-      console.error('Error fetching full result for evaluation view:', error);
-    }
-
-    const preloaded = {
-      score_clinique: fullRow?.score_clinique ?? 0,
-      score_communication: fullRow?.score_communication ?? 0,
-      note_finale: fullRow?.score ?? (result.score ?? 0),
-      actions_reussies: fullRow?.evaluation_details?.actions_reussies ?? [],
-      actions_manquees: fullRow?.evaluation_details?.actions_manquees ?? [],
-      communication_details: fullRow?.evaluation_details?.communication_details ?? {},
-      feedback: fullRow?.feedback ?? '',
-      transcript_json: fullRow?.transcript_json ?? []
-    };
-    sessionStorage.setItem('preloadedEvaluation', JSON.stringify(preloaded));
-
-    navigate('/simulation');
-  } catch (e) {
-    console.error('Error preparing evaluation view:', e);
-    toast.error("Impossible d'ouvrir la grille d'évaluation.");
-  }
+function handleViewEvaluation(result: SessionResult, navigate: ReturnType<typeof useNavigate>) {
+  navigate(`/history-evaluation/${result.id}`, { state: { from: "/dashboard" } });
 }
 const Dashboard = () => {
   const { user } = useAuth();
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('global');
   const { data, loading } = useDashboardData(user?.id, timeFilter);
   const { results, loading: resultsLoading } = useResults({ lite: true, limit: 5 });
-  const { sddList } = useSDD();
   const navigate = useNavigate();
 
   const pageDescription = "Analyse tes performances, ta progression et identifie tes axes d'amélioration";
@@ -323,7 +284,7 @@ const Dashboard = () => {
         <RecentSessions
           results={results as any}
           loading={resultsLoading}
-          onViewEvaluation={(r: any) => handleViewEvaluation(r, sddList, navigate)}
+          onViewEvaluation={(r: SessionResult) => handleViewEvaluation(r, navigate)}
           title="Sessions récentes"
           subtitle="Consulte les notes et les évaluations des 5 dernières stations effectuées"
           headerRight={(
