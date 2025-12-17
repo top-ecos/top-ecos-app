@@ -161,58 +161,8 @@ const Dashboard = () => {
   // Use the calculated recommended SDD if available, otherwise stick with the cached one.
   const currentSdd = recommendedSdd || heroSdd;
 
-  const handleViewEvaluation = async (result: SessionResult) => {
-    try {
-      // Prepare minimal case data for Simulation page
-      const sddMatch = (sddList || []).find((s) => String(s.sdd_id) === String(result.station_id));
-      const minimalCase = {
-        sdd_id: String(result.station_id),
-        sdd_titre: result.station_title,
-        Type_de_station: result.typologie || 'PS',
-        consignes_etudiant: sddMatch?.consignes_etudiant || null,
-        include_documents: sddMatch?.include_documents ?? null,
-        sdd_type: sddMatch?.sdd_type ?? null
-      } as any;
-      StorageManager.setSelectedCase(minimalCase);
-      StorageManager.removeInitialPatientMessage();
-
-      // Fetch full result row on demand (lite mode used on Home)
-      const { data: fullRow, error } = await supabase
-        .from('mock_results')
-        .select(`
-          score,
-          feedback,
-          transcript_json,
-          score_clinique,
-          score_communication,
-          score_phase_1,
-          score_phase_2,
-          evaluation_details
-        `)
-        .eq('id', result.id)
-        .single();
-
-      if (error) {
-        console.error('Error fetching full result for evaluation view:', error);
-      }
-
-      const preloaded = {
-        score_clinique: fullRow?.score_clinique ?? 0,
-        score_communication: fullRow?.score_communication ?? 0,
-        note_finale: fullRow?.score ?? (result.score ?? 0),
-        actions_reussies: fullRow?.evaluation_details?.actions_reussies ?? [],
-        actions_manquees: fullRow?.evaluation_details?.actions_manquees ?? [],
-        communication_details: fullRow?.evaluation_details?.communication_details ?? {},
-        feedback: fullRow?.feedback ?? '',
-        transcript_json: fullRow?.transcript_json ?? []
-      };
-      StorageManager.setPreloadedEvaluation(preloaded);
-
-      navigate('/simulation');
-    } catch (e) {
-      console.error('Error preparing evaluation view:', e);
-      toast.error("Impossible d'ouvrir la grille d'évaluation.");
-    }
+  const handleViewEvaluation = (result: SessionResult) => {
+    navigate(`/history-evaluation/${result.id}`, { state: { from: "/" } });
   };
 
   const handleStartSimulation = async (sdd: SDD) => {

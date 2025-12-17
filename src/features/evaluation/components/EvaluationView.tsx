@@ -12,6 +12,7 @@ interface EvaluationViewProps {
   onResetStation: () => void;
   onBackToHome: () => void;
   backLabel?: string;
+  showBackButton?: boolean;
   hideResetStation?: boolean;
 }
 
@@ -23,6 +24,7 @@ const EvaluationView = ({
   onResetStation, 
   onBackToHome,
   backLabel = "Retour",
+  showBackButton = false,
   hideResetStation = false,
 }: EvaluationViewProps) => {
   return (
@@ -31,15 +33,17 @@ const EvaluationView = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex items-center gap-3">
-              <button
-                onClick={onBack}
-                className="h-10 w-10 sm:h-auto sm:w-auto inline-flex items-center justify-center sm:justify-start rounded-full border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition px-0 sm:px-4 py-0 sm:py-2"
-                aria-label={backLabel}
-                title={backLabel}
-              >
-                <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">{backLabel}</span>
-              </button>
+              {showBackButton ? (
+                <button
+                  onClick={onBack}
+                  className="h-10 w-10 sm:h-auto sm:w-auto inline-flex items-center justify-center sm:justify-start rounded-full border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition px-0 sm:px-4 py-0 sm:py-2"
+                  aria-label={backLabel}
+                  title={backLabel}
+                >
+                  <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{backLabel}</span>
+                </button>
+              ) : null}
               <div className="min-w-0">
                 <h1 className="text-lg sm:text-2xl font-bold text-[#222223] truncate max-w-[50vw] sm:max-w-none">
                   {caseData.sdd_titre || `Station`}

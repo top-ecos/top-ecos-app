@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/shared/components/ui/sonner";
 import type { CaseData } from "@/features/station/types/sdd.types";
@@ -7,6 +7,10 @@ import type { EvaluationResult, TranscriptMessage } from "@/features/evaluation/
 import type { Message, MessageRole } from "@/features/chat/types/message.types";
 import EvaluationView from "@/features/evaluation/components/EvaluationView";
 import ReplayView from "@/features/chat/components/ReplayView";
+import { startSimulation, SimulationError } from "@/features/simulation/lib/simulation";
+import { useProfile } from "@/shared/hooks/useProfile";
+import { useStationProgress } from "@/shared/hooks/useStationProgress";
+import type { SDD } from "@/shared/hooks/useSDD";
 
 type MockResultRow = {
   score: number | null;
@@ -31,12 +35,68 @@ const isMessageRole = (role: unknown): role is MessageRole =>
 
 const HistoryEvaluationPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { resultId } = useParams<{ resultId: string }>();
+  const { updateTokens } = useProfile();
+  const { updateLastAttempt } = useStationProgress() as any;
 
   const [loading, setLoading] = useState(true);
   const [caseData, setCaseData] = useState<CaseData | null>(null);
   const [evaluationResult, setEvaluationResult] = useState<EvaluationResult | null>(null);
   const [showReplay, setShowReplay] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
+
+  const backTo = useMemo(() => {
+    const from = (location.state as { from?: unknown } | null)?.from;
+    return typeof from === "string" && from.length > 0 ? from : "/history";
+  }, [location.state]);
+
+  const handleBack = () => {
+    navigate(backTo);
+  };
+
+  const handleRestartStation = async () => {
+    if (!caseData || isStarting) return;
+    setIsStarting(true);
+    try {
+      const sdd: SDD = {
+        id: String(caseData.sdd_id),
+        sdd_id: String(caseData.sdd_id),
+        name: caseData.sdd_titre || `SDD ${String(caseData.sdd_id).slice(0, 8)}`,
+        description: caseData.consignes_etudiant || "",
+        sdd_titre: caseData.sdd_titre ?? null,
+        Type_de_station: (caseData.Type_de_station ?? caseData.sdd_type ?? null) as any,
+        item_EDN: (caseData as any)?.item_EDN ?? null,
+        consignes_etudiant: caseData.consignes_etudiant ?? null,
+        official_id: (caseData as any)?.official_id ?? null,
+        specialite: (caseData as any)?.specialite ?? (caseData as any)?.sdd_specialite ?? null,
+        sdd_type: caseData.sdd_type ?? null,
+        include_documents: caseData.include_documents ?? null,
+        premium: null,
+        ranked: null,
+      };
+
+      await startSimulation(sdd, {
+        updateTokens,
+        updateLastAttempt,
+        sanitizeMessage: false,
+      } as any);
+
+      navigate("/simulation");
+    } catch (e) {
+      console.error("Failed to restart station from history evaluation:", e);
+      if (e instanceof SimulationError) {
+        toast.error(e.message);
+        if (e.code === "INSUFFICIENT_TOKENS_UPGRADE") {
+          navigate("/pricing");
+        }
+        return;
+      }
+      toast.error("Impossible de relancer cette station.");
+    } finally {
+      setIsStarting(false);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -134,12 +194,11 @@ const HistoryEvaluationPage = () => {
       <ReplayView
         caseData={caseData}
         messages={replayMessages}
-        onBack={() => navigate("/history")}
-        backLabel="Historique"
-        hideResetStation
+        onBack={handleBack}
+        backLabel="Retour"
         onShowEvaluation={() => setShowReplay(false)}
-        onResetStation={() => navigate("/cases")}
-        onBackToHome={() => navigate("/history")}
+        onResetStation={handleRestartStation}
+        onBackToHome={handleBack}
       />
     );
   }
@@ -148,12 +207,12 @@ const HistoryEvaluationPage = () => {
     <EvaluationView
       caseData={caseData}
       evaluationResult={evaluationResult}
-      onBack={() => navigate("/history")}
-      backLabel="Historique"
-      hideResetStation
+      onBack={handleBack}
+      backLabel="Retour"
+      showBackButton
       onShowReplay={() => setShowReplay(true)}
-      onResetStation={() => navigate("/cases")}
-      onBackToHome={() => navigate("/history")}
+      onResetStation={handleRestartStation}
+      onBackToHome={handleBack}
     />
   );
 };
