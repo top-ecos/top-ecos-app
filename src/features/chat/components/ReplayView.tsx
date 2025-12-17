@@ -153,7 +153,7 @@ const ReplayView = ({
                   <div className={`max-w-3xl px-4 py-3 rounded-xl ${
                     message.role === 'user' 
                       ? 'bg-[#4299F6] text-white shadow-md' 
-                      : 'bg-gray-100 border border-gray-200 shadow-sm'
+                      : 'bg-gray-100 border border-gray-200 shadow-sm text-[#222223]'
                   }`}>
                     <div className="flex items-start space-x-3">
                       {message.role === 'assistant' && (
