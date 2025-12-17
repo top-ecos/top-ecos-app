@@ -53,6 +53,7 @@ const DocumentSimulation = React.memo(({
     isPaused,
     isTimeUp,
     togglePause,
+    resetStation: resetChatState,
     clearSavedData
   } = useChat(caseData, null);
 
@@ -135,6 +136,13 @@ const DocumentSimulation = React.memo(({
    * Reset station and start fresh simulation
    */
   const handleResetStation = useCallback(async () => {
+    // Reset chat state (timer and messages)
+    resetChatState();
+    
+    // Reset local document messages and input
+    setDocumentMessages([]);
+    setNoteInput("");
+    
     // Reset server-side progress flags
     await resetStationProgress(caseData.sdd_id);
     
@@ -172,7 +180,7 @@ const DocumentSimulation = React.memo(({
     
     // Navigate to simulation with fresh state
     window.location.href = `/simulation?restart=${Date.now()}`;
-  }, [caseData, resetStationProgress, updateTokens, updateLastAttempt, setHasShownEvaluation]);
+  }, [caseData, resetChatState, resetStationProgress, updateTokens, updateLastAttempt, setHasShownEvaluation]);
 
   /**
    * Quit without evaluating
