@@ -390,19 +390,20 @@ const Auth = () => {
                 {authStep === 'signin' && (
                   <form onSubmit={handleSignIn} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signin-email">Email</Label>
+                      <Label htmlFor="signin-email" className="text-black">Email</Label>
                       <Input
                         id="signin-email"
                         name="email"
                         type="email"
                         placeholder="mardi.mai@top-ecos.com"
+                        className="placeholder:text-[#707070]"
                         required
                       />
                     </div>
                     
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="signin-password">Mot de passe</Label>
+                        <Label htmlFor="signin-password" className="text-black">Mot de passe</Label>
                         <button
                           type="button"
                           className="text-xs underline text-muted-foreground hover:text-muted-foreground"
@@ -415,6 +416,8 @@ const Auth = () => {
                         id="signin-password"
                         name="password"
                         type="password"
+                        placeholder="mot de passe"
+                        className="placeholder:text-[#707070]"
                         required
                       />
                     </div>
@@ -433,12 +436,13 @@ const Auth = () => {
                 {authStep === 'forgot' && (
                   <form onSubmit={handleForgotPassword} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="forgot-email">Ton email</Label>
+                      <Label htmlFor="forgot-email" className="text-black">Ton email</Label>
                       <Input
                         id="forgot-email"
                         name="email"
                         type="email"
                         placeholder="mardi.mai@top-ecos.com"
+                        className="placeholder:text-[#707070]"
                         required
                       />
                     </div>
@@ -465,23 +469,25 @@ const Auth = () => {
                 {authStep === 'reset' && (
                   <form onSubmit={handleResetPassword} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="new-password">Nouveau mot de passe</Label>
+                      <Label htmlFor="new-password" className="text-black">Nouveau mot de passe</Label>
                       <Input
                         id="new-password"
                         name="newPassword"
                         type="password"
                         minLength={6}
+                        className="placeholder:text-[#707070]"
                         required
                       />
                       <p className="text-xs text-muted-foreground">Minimum 6 caractères</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirmer le mot de passe</Label>
+                      <Label htmlFor="confirm-password" className="text-black">Confirmer le mot de passe</Label>
                       <Input
                         id="confirm-password"
                         name="confirmPassword"
                         type="password"
                         minLength={6}
+                        className="placeholder:text-[#707070]"
                         required
                       />
                     </div>
@@ -505,37 +511,39 @@ const Auth = () => {
                 <form onSubmit={handleSignUp} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-firstname">Prénom <span className="text-red-600">*</span></Label>
+                      <Label htmlFor="signup-firstname" className="text-black">Prénom <span className="text-red-600">*</span></Label>
                       <Input
                         id="signup-firstname"
                         name="firstName"
                         type="text"
                         placeholder="Mardi"
+                        className="placeholder:text-[#707070]"
                         required
                       />
                     </div>
                     
                     <div className="space-y-2">
-                      <Label htmlFor="signup-lastname">Nom <span className="text-red-600">*</span></Label>
+                      <Label htmlFor="signup-lastname" className="text-black">Nom <span className="text-red-600">*</span></Label>
                       <Input
                         id="signup-lastname"
                         name="lastName"
                         type="text"
                         placeholder="Mai"
+                        className="placeholder:text-[#707070]"
                         required
                       />
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="signup-email" className="text-black">Email <span className="text-red-600">*</span></Label>
                     <Input
                       id="signup-email"
                       name="email"
                       type="email"
                       placeholder="mardi.mai@top-ecos.com"
                       required
-                      className={validationErrors.email ? 'border-red-500' : ''}
+                      className={`placeholder:text-[#707070] ${validationErrors.email ? 'border-red-500' : ''}`}
                     />
                     {validationErrors.email && (
                       <p className="text-xs text-red-600">{validationErrors.email}</p>
@@ -543,10 +551,10 @@ const Auth = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-phone">Téléphone <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="signup-phone" className="text-black">Téléphone <span className="text-red-600">*</span></Label>
                     <div className="flex gap-2">
                       <Select value={countryCode} onValueChange={setCountryCode}>
-                        <SelectTrigger className="w-[120px]">
+                        <SelectTrigger className="w-[120px] text-[#707070]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -567,7 +575,7 @@ const Auth = () => {
                         type="tel"
                         placeholder="6 12 34 56 78"
                         required
-                        className={`flex-1 ${validationErrors.phone ? 'border-red-500' : ''}`}
+                        className={`flex-1 placeholder:text-[#707070] ${validationErrors.phone ? 'border-red-500' : ''}`}
                       />
                     </div>
                     {validationErrors.phone && (
@@ -576,14 +584,15 @@ const Auth = () => {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Mot de passe <span className="text-red-600">*</span></Label>
+                    <Label htmlFor="signup-password" className="text-black">Mot de passe <span className="text-red-600">*</span></Label>
                     <Input
                       id="signup-password"
                       name="password"
                       type="password"
+                      placeholder="mot de passe"
                       minLength={6}
                       required
-                      className={validationErrors.password ? 'border-red-500' : ''}
+                      className={`placeholder:text-[#707070] ${validationErrors.password ? 'border-red-500' : ''}`}
                     />
                     {validationErrors.password && (
                       <p className="text-xs text-red-600">{validationErrors.password}</p>
@@ -607,7 +616,7 @@ const Auth = () => {
                 {signupStep === 'code' && (
                   <form onSubmit={handleVerifyCode} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="signup-code">Code de vérification</Label>
+                      <Label htmlFor="signup-code" className="text-black">Code de vérification</Label>
                       <Input
                         id="signup-code"
                         name="code"
@@ -618,6 +627,7 @@ const Auth = () => {
                         placeholder="••••••"
                         value={verificationCode}
                         onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="placeholder:text-[#707070]"
                         required
                       />
                       <p className="text-xs text-muted-foreground">Entre le code à 6 chiffres reçu par SMS</p>
