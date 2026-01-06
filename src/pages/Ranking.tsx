@@ -274,7 +274,7 @@ const Ranking = () => {
                     Accès au classement réservé aux abonnés
                   </h1>
                   <p className="text-subtext">
-                    Passe à top ECOS Premium pour comparer tes performances à celles des autres étudiants. Chaque semaine, 3 nouvelles stations classées t’attendent parmi les 5 nouvelles ajoutées à la plateforme.
+                    Passe à top ECOS Premium pour comparer tes performances à celles des autres étudiants. Chaque semaine, 3 nouvelles stations classées t’attendent parmi les 10 nouvelles ajoutées à la plateforme.
                   </p>
                   <div className="pt-2">
                     <Button
