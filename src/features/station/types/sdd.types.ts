@@ -11,6 +11,7 @@ export interface CaseData {
   // Metadata
   official_id?: string | null;
   item_edn_name?: string | null;
+  item_edn?: string | null;
   station_code?: string | null;
   created_at?: string | null;
   sdd_specialite?: string | null;
