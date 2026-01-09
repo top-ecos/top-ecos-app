@@ -22,7 +22,7 @@ const HistoryPage = () => {
         <header className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-800">Historique des sessions</h1>
-            <p className="text-gray-500 mt-1">Consulte toutes tes sessions passées et leurs évaluations</p>
+            <p className="text-gray-500 mt-1">Consulte toutes tes stations jouées et leurs évaluations</p>
           </div>
           <Button variant="secondary" className="bg-white text-text border border-border hover:bg-gray-50" onClick={() => navigate(-1)}>
             <ChevronLeft size={16} className="mr-2" />
