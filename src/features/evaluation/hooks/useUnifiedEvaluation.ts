@@ -55,6 +55,10 @@ export const useUnifiedEvaluation = (caseData: CaseData, messages?: Message[]) =
     const isPremium = profile?.premium || false;
     
     if (isSecheStation) {
+      // Add premium variant for seche stations
+      if (useGPT5 && isPremium) {
+        return 'evaluate-performance-seche-dev-premium';
+      }
       return useGPT5 ? 'evaluate-performance-seche-dev' : 'evaluate-performance-seche';
     }
     
