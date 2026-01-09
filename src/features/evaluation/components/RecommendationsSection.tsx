@@ -42,7 +42,7 @@ const RecommendationsSection: React.FC<RecommendationsSectionProps> = ({
               <h4 className="font-bold text-[#4299F6] flex items-start gap-2">
                 <span className="text-[#4299F6] flex-shrink-0">→</span>
                 <span className="flex-1">{bullet.title}</span>
-              </h3>
+              </h4>
               <p className="text-[#222223] leading-relaxed pl-5">
                 {bullet.explanation}
               </p>
