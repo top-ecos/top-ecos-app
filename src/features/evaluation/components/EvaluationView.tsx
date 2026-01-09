@@ -125,7 +125,7 @@ const EvaluationView = ({
           result={evaluationResult}
           stationTitle={caseData.sdd_titre || `Station ${caseData.sdd_id}`}
           stationId={String(caseData.sdd_id)}
-          ednItemNumber={caseData.official_id}
+          ednItemNumber={caseData.item_edn}
           ednItemName={caseData.item_edn_name}
         />
       </div>
