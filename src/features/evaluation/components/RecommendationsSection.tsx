@@ -20,7 +20,7 @@ const RecommendationsSection: React.FC<RecommendationsSectionProps> = ({
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       {/* Header with EDN Badge */}
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-[#4299F6]">Pour aller plus loin...</h2>
+        <h1 className="text-xl font-bold text-[#4299F6]">Pour aller plus loin...</h1>
         {ednItemNumber && (
           <div className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded text-xs font-medium max-w-md truncate">
             Item EDN {ednItemNumber}{ednItemName ? ` : ${ednItemName}` : ''}
