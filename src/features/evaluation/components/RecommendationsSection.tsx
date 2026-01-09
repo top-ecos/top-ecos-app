@@ -36,9 +36,9 @@ const RecommendationsSection: React.FC<RecommendationsSectionProps> = ({
         </p>
 
         {/* Recommendations List */}
-        <div className="space-y-4">
+        <div className="space-y-5">
           {recommendations.bullets.map((bullet, index) => (
-            <div key={index} className="space-y-2">
+            <div key={index} className="space-y-1">
               <h5 className="font-bold text-[#4299F6] flex items-start gap-2">
                 <span className="text-[#4299F6] flex-shrink-0">→</span>
                 <span className="flex-1">{bullet.title}</span>
