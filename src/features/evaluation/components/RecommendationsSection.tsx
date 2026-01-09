@@ -20,7 +20,7 @@ const RecommendationsSection: React.FC<RecommendationsSectionProps> = ({
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
       {/* Header with EDN Badge */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold text-[#4299F6]">Pour aller plus loin...</h1>
+        <h1 className="text-2xl font-bold text-[#4299F6]">Pour aller plus loin...</h1>
         {ednItemNumber && (
           <div className="bg-gray-100 text-gray-700 px-3 py-1.5 rounded text-xs font-medium max-w-md truncate">
             Item EDN {ednItemNumber}{ednItemName ? ` : ${ednItemName}` : ''}
@@ -39,10 +39,10 @@ const RecommendationsSection: React.FC<RecommendationsSectionProps> = ({
         <div className="space-y-4">
           {recommendations.bullets.map((bullet, index) => (
             <div key={index} className="space-y-2">
-              <h4 className="font-bold text-[#4299F6] flex items-start gap-2">
+              <h5 className="font-bold text-[#4299F6] flex items-start gap-2">
                 <span className="text-[#4299F6] flex-shrink-0">→</span>
                 <span className="flex-1">{bullet.title}</span>
-              </h4>
+              </h5>
               <p className="text-[#222223] leading-relaxed pl-5">
                 {bullet.explanation}
               </p>
