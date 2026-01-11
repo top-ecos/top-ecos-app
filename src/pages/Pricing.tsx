@@ -36,7 +36,7 @@ const pricingTiers: PricingPlan[] = [
         isHighlighted: false,
     },
     {
-        title: 'Mensuel',
+        title: 'Premium - Mensuel',
         price: '25€',
         priceSuffix: '/ mois',
         subtitle: 'pour t\'entraîner à ton rythme.',
@@ -56,7 +56,7 @@ const pricingTiers: PricingPlan[] = [
         isHighlighted: false,
     },
     {
-        title: 'Saison ECOS 2026',
+        title: 'Premium - Saison ECOS 2026',
         price: '17€',
         priceSuffix: '/ mois*',
         subtitle: 'pour une préparation complète jusqu\'aux ECOS 2026',
