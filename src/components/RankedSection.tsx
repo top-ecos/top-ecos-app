@@ -209,7 +209,7 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
                     style={{ borderColor: '#E74C3C' }}
                   >
                     <CardContent className="p-4 flex flex-col h-full">
-                      <div className={`flex flex-col space-y-2 flex-1 ${!completed ? 'filter blur-sm pointer-events-none select-none' : ''}`}>
+                      <div className={`flex flex-col space-y-2 flex-1 ${!completed ? 'filter blur-lg pointer-events-none select-none' : ''}`}>
                         <h3 className="font-semibold text-text text-lg leading-tight line-clamp-2 min-h-[2.5rem] -mb-2">
                           {sdd.name}
                         </h3>
