@@ -12,6 +12,7 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { useProfile } from '@/shared/hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
+import { isUserPremium } from '@/shared/lib/premium';
 
 type RankingRow = {
   user_id: string;
@@ -114,26 +115,24 @@ const getWeekStart = (d = new Date()) => {
 
 const Ranking = () => {
   // Premium gating (align with Home logic)
-  const { profile, loading: profileLoading } = useProfile();
-  const [cachedPremium, setCachedPremium] = useState<boolean | null>(() => {
+  const { profile, loading: profileLoading, hasPremiumAccess } = useProfile();
+  
+  // Cache-first premium check for instant UI response
+  const [cachedHasPremium, setCachedHasPremium] = useState<boolean | null>(() => {
     const cache = typeof StorageManager?.getProfileCache === 'function'
       ? StorageManager.getProfileCache()
       : null;
-    return cache ? Boolean(cache.data.premium) : null;
+    return cache ? isUserPremium(cache.data) : null;
   });
-  const isPremiumEffective = typeof profile?.premium === 'boolean' ? Boolean(profile.premium) : Boolean(cachedPremium);
+  
+  // Use hook's hasPremiumAccess when profile is loaded, otherwise use cached value
+  const isPremiumEffective = hasPremiumAccess ?? cachedHasPremium ?? false;
+  
+  // Update cache when profile changes
   useEffect(() => {
-    if (typeof profile?.premium !== 'boolean') return;
-
-    const cache = typeof StorageManager?.getProfileCache === 'function'
-      ? StorageManager.getProfileCache()
-      : null;
-    const data = { ...cache?.data, premium: profile.premium };
-
-    if (typeof StorageManager?.setProfileCache === 'function') {
-      StorageManager.setProfileCache(data);
-    }
-  }, [profile?.premium]);
+    if (!profile) return;
+    setCachedHasPremium(hasPremiumAccess);
+  }, [profile, hasPremiumAccess]);
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<RankingRow[]>([]);
@@ -258,7 +257,7 @@ const Ranking = () => {
 
   // Premium gate: show instantly for known free users (from cache or profile),
   // even if profile is still loading to avoid any spinner flash.
-  const premiumKnown = (typeof profile?.premium === 'boolean') || (typeof cachedPremium === 'boolean');
+  const premiumKnown = profile !== null || cachedHasPremium !== null;
   if (premiumKnown && !isPremiumEffective) {
     return (
       <Layout>

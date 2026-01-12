@@ -1,8 +1,11 @@
+import { useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useProfile } from '@/shared/hooks/useProfile';
 import { Button } from '@/shared/components/ui/button-premium';
 import { ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 type PricingPlan = {
     title: string;
@@ -88,6 +91,40 @@ const CheckIcon = ({ className = 'text-[var(--accent)]' }: { className?: string 
 
 const Pricing = () => {
     const { user } = useAuth();
+    const { profile, refreshProfile } = useProfile();
+    const [isActivatingTrial, setIsActivatingTrial] = useState(false);
+
+    // Trial status computation
+    const trialEndsAt = profile?.trial_ends_at;
+    const isPremiumUser = Boolean(profile?.premium);
+    const isTrialActive = trialEndsAt && new Date(trialEndsAt) > new Date();
+    const isTrialExpired = trialEndsAt && new Date(trialEndsAt) <= new Date();
+    const canActivateTrial = !isPremiumUser && !trialEndsAt;
+
+    // Format trial end date for display
+    const formatTrialEndDate = (dateString: string): string => {
+        return new Date(dateString).toLocaleDateString('fr-FR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: '2-digit'
+        });
+    };
+
+    // Trial activation handler
+    const handleActivateTrial = async () => {
+        setIsActivatingTrial(true);
+        try {
+            const { error } = await supabase.functions.invoke('activate-trial');
+            if (error) throw error;
+            toast.success('Essai Premium activé pour 7 jours !');
+            await refreshProfile();
+        } catch (error) {
+            console.error('Error activating trial:', error);
+            toast.error("Impossible d'activer l'essai gratuit");
+        } finally {
+            setIsActivatingTrial(false);
+        }
+    };
 
     const initiateCheckout = async (priceId?: string, mode?: 'payment' | 'subscription') => {
         console.log('--- initiateCheckout called ---');
@@ -188,10 +225,10 @@ const Pricing = () => {
                                 {plan.ctaText && (
                                     <div className="mt-8 flex justify-center w-full">
                                         <Button
-                                            variant={plan.title === 'Mensuel' ? 'secondary' : 'primary'}
-                                            size={plan.title === 'Mensuel' ? 'sm' : 'lg'}
+                                            variant={plan.title === 'Premium - Mensuel' ? 'secondary' : 'primary'}
+                                            size={plan.title === 'Premium - Mensuel' ? 'sm' : 'lg'}
                                             className={`w-full sm:w-auto sm:px-6 lg:min-w-[240px] xl:min-w-[260px] max-w-full whitespace-normal text-center
-                                                ${plan.title === 'Mensuel'
+                                                ${plan.title === 'Premium - Mensuel'
                                                     ? 'bg-white text-text border border-[var(--border)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)]'
                                                     : 'text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-[var(--accent)]'
                                                 }`}
@@ -200,6 +237,34 @@ const Pricing = () => {
                                             <span className="font-bold text-sm sm:text-base leading-tight break-words">{plan.ctaText}</span>
                                             <ChevronRight size={18} className="ml-2" />
                                         </Button>
+                                    </div>
+                                )}
+                                
+                                {plan.title === 'Premium - Mensuel' && (
+                                    <div className="mt-3 w-full flex justify-center">
+                                        {isTrialExpired ? (
+                                            <button 
+                                                disabled 
+                                                className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-full text-gray-500 bg-gray-100 cursor-not-allowed"
+                                            >
+                                                Essai gratuit terminé le {formatTrialEndDate(trialEndsAt!)}
+                                            </button>
+                                        ) : isTrialActive ? (
+                                            <button 
+                                                disabled 
+                                                className="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-full text-gray-500 bg-gray-100 cursor-not-allowed"
+                                            >
+                                                Essai gratuit en cours
+                                            </button>
+                                        ) : canActivateTrial ? (
+                                            <button 
+                                                onClick={handleActivateTrial} 
+                                                disabled={isActivatingTrial}
+                                                className="inline-flex items-center justify-center px-4 py-2 border border-gray-400 text-sm font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-wait"
+                                            >
+                                                {isActivatingTrial ? 'Activation...' : 'Essai gratuit de 7 jours'}
+                                            </button>
+                                        ) : null}
                                     </div>
                                 )}
                             </div>

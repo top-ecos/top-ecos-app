@@ -23,7 +23,7 @@ export const useUnifiedEvaluation = (caseData: CaseData, messages?: Message[]) =
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile, hasPremiumAccess } = useProfile();
 
   // Determine station type once
   const stationType = getStationType(caseData);
@@ -49,10 +49,11 @@ export const useUnifiedEvaluation = (caseData: CaseData, messages?: Message[]) =
 
   /**
    * Get the appropriate edge function name based on station type and environment
+   * Uses hasPremiumAccess which includes subscription, trial, and one-time purchases
    */
   const getEvaluationFunctionName = useCallback((): string => {
     const useGPT5 = import.meta.env.VITE_USE_GPT5_EVALUATION === 'true';
-    const isPremium = profile?.premium || false;
+    const isPremium = hasPremiumAccess;
     
     if (isSecheStation) {
       // Add premium variant for seche stations
@@ -68,7 +69,7 @@ export const useUnifiedEvaluation = (caseData: CaseData, messages?: Message[]) =
     }
     
     return useGPT5 ? 'evaluate-performance-dev' : 'evaluate-performance';
-  }, [isSecheStation, profile?.premium]);
+  }, [isSecheStation, hasPremiumAccess]);
 
   /**
    * Calculate session analytics metrics

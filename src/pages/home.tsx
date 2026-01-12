@@ -18,7 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { startSimulation } from "@/features/simulation/lib/simulation";
 import { toast } from "@/shared/components/ui/sonner";
-import { isSddPremium } from "@/shared/lib/premium";
+import { isSddPremium, isUserPremium } from "@/shared/lib/premium";
 import RecentSessions from "@/components/RecentSessions";
 import { StorageManager } from "@/shared/lib/storage";
 
@@ -71,7 +71,7 @@ const HeroSkeleton = () => (
 
 
 const Dashboard = () => {
-  const { profile, loading: profileLoading, updateTokens } = useProfile();
+  const { profile, loading: profileLoading, updateTokens, hasPremiumAccess } = useProfile();
   const { user } = useAuth();
   const { results, loading: resultsLoading } = useResults({ lite: true, limit: 5 });
   const { sddList, loading: sddLoading, error: sddError } = useSDD();
@@ -84,18 +84,21 @@ const Dashboard = () => {
 
   // --- User Profile & Premium Status ---
   // PHOENIX: Caching premium status is a good strategy to prevent UI flicker on reloads.
-  const [cachedPremium, setCachedPremium] = useState<boolean | null>(() => {
+  // Now uses isUserPremium to also check trial and access_expires_at
+  const [cachedHasPremium, setCachedHasPremium] = useState<boolean | null>(() => {
     const cache = StorageManager.getProfileCache();
-    return cache ? Boolean(cache.data.premium) : null;
+    return cache ? isUserPremium(cache.data) : null;
   });
-  const isPremiumEffective = typeof profile?.premium === 'boolean' ? Boolean(profile.premium) : Boolean(cachedPremium);
+  
+  // Use hook's hasPremiumAccess when profile is loaded, otherwise use cached value
+  const isPremiumEffective = hasPremiumAccess ?? cachedHasPremium ?? false;
+  
+  // Update cached state when profile changes
   useEffect(() => {
-    if (typeof profile?.premium === 'boolean') {
-      const cache = StorageManager.getProfileCache();
-      const data = { ...cache?.data, premium: profile.premium };
-      StorageManager.setProfileCache(data);
+    if (profile) {
+      setCachedHasPremium(hasPremiumAccess);
     }
-  }, [profile?.premium]);
+  }, [profile, hasPremiumAccess]);
 
 
   // --- Greeting Name ---

@@ -9,7 +9,7 @@ import { toast } from "@/shared/components/ui/sonner";
 
 const Profil = () => {
   const { user } = useAuth();
-  const { profile, loading, refreshProfile } = useProfile();
+  const { profile, loading, refreshProfile, hasPremiumAccess } = useProfile();
   const navigate = useNavigate();
   const EMOJI_OPTIONS = ["😈","🙈","👩🏻‍⚕️","👨🏼‍⚕️","👻","🤡","👩🏻‍🦰","🧕","🥷"] as const;
   
@@ -52,6 +52,7 @@ const Profil = () => {
   
   // --- NEW: State for managing subscription button loading ---
   const [isManagingSubscription, setIsManagingSubscription] = useState(false);
+  const [isActivatingTrial, setIsActivatingTrial] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -268,7 +269,47 @@ const Profil = () => {
 
   const display = profile || cachedProfile || {};
   const displayEmoji: string = (display as any)?.emoji || formData.emoji || '';
+  
+  // isPremiumUser = has paid subscription (for UI display purposes)
   const isPremiumUser = Boolean((profile as any)?.premium);
+
+  // Trial status computation
+  const trialEndsAt = (profile as any)?.trial_ends_at;
+  const isTrialActive = trialEndsAt && new Date(trialEndsAt) > new Date();
+  const isTrialExpired = trialEndsAt && new Date(trialEndsAt) <= new Date();
+  const canActivateTrial = !isPremiumUser && !trialEndsAt;
+  // hasPremiumAccess comes from useProfile hook - includes subscription, trial, and Season Pass
+
+  // Format trial end date for display
+  const formatTrialEndDate = (dateString: string): string => {
+    try {
+      return new Date(dateString).toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  // Trial activation handler
+  const handleActivateTrial = async () => {
+    setIsActivatingTrial(true);
+    try {
+      const { error } = await supabase.functions.invoke('activate-trial');
+      if (error) throw error;
+      toast.success('Essai Premium activé pour 7 jours !');
+      await refreshProfile();
+    } catch (error) {
+      console.error('Error activating trial:', error);
+      toast.error("Impossible d'activer l'essai gratuit");
+    } finally {
+      setIsActivatingTrial(false);
+    }
+  };
 
   // --- UPDATED: Invoke Edge Function with return_url and redirect ---
   const handleManageSubscription = async () => {
@@ -506,10 +547,12 @@ const Profil = () => {
           {/* Subscription Card */}
           <div className="bg-white p-8 shadow-sm rounded-lg border border-gray-200">
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">Abonnement</h2>
-            {isPremiumUser ? (
+            {hasPremiumAccess ? (
               <>
                 <p className="text-gray-600 mb-6">
-                  Abonnement actuel : <span className="font-bold text-gray-800">Premium</span>
+                  Abonnement actuel : <span className="font-bold text-gray-800">
+                    {isPremiumUser ? 'Premium' : 'Premium (essai gratuit 7 jours)'}
+                  </span>
                 </p>
                 <ul className="space-y-3 mb-8">
                   {freePlanLimitations.map((item, index) => (
@@ -520,22 +563,27 @@ const Profil = () => {
                   ))}
                 </ul>
                 <div className="flex justify-end">
-                  {/* --- UPDATED BUTTON with loading and disabled states --- */}
-                  <button
-                    onClick={handleManageSubscription}
-                    disabled={isManagingSubscription}
-                    className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-full text-white bg-accent hover:bg-[#03BB26]/85 disabled:opacity-50 disabled:cursor-wait"
-                  >
-                    {isManagingSubscription ? 'Chargement...' : (
-                      <>
-                        <span className="inline-flex items-center bg-white/20 text-white text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">
-                          <Zap size={14} className="mr-1" />
-                          Premium
-                        </span>
-                        Gérer mon abonnement
-                      </>
-                    )}
-                  </button>
+                  {isTrialActive ? (
+                    <div className="inline-flex items-center justify-center px-5 py-3 border border-accent text-base font-medium rounded-full text-accent bg-white">
+                      Essai top ECOS Premium activé, valide jusqu'au {formatTrialEndDate(trialEndsAt)}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleManageSubscription}
+                      disabled={isManagingSubscription}
+                      className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-full text-white bg-accent hover:bg-[#03BB26]/85 disabled:opacity-50 disabled:cursor-wait"
+                    >
+                      {isManagingSubscription ? 'Chargement...' : (
+                        <>
+                          <span className="inline-flex items-center bg-white/20 text-white text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">
+                            <Zap size={14} className="mr-1" />
+                            Premium
+                          </span>
+                          Gérer mon abonnement
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </>
             ) : (
@@ -551,7 +599,20 @@ const Profil = () => {
                     </li>
                   ))}
                 </ul>
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-4">
+                  {isTrialExpired ? (
+                    <div className="inline-flex items-center justify-center px-5 py-3 border border-gray-300 text-base font-medium rounded-full text-gray-500 bg-gray-100 cursor-not-allowed">
+                      Essai top ECOS Premium terminé le {formatTrialEndDate(trialEndsAt)}
+                    </div>
+                  ) : canActivateTrial ? (
+                    <button
+                      onClick={handleActivateTrial}
+                      disabled={isActivatingTrial}
+                      className="inline-flex items-center justify-center px-5 py-3 border border-accent text-base font-medium rounded-full text-accent bg-white hover:bg-[#03BB26]/10 disabled:opacity-50 disabled:cursor-wait"
+                    >
+                      {isActivatingTrial ? 'Activation...' : "J'active mon essai top ECOS Premium gratuit (7 jours)"}
+                    </button>
+                  ) : null}
                   <button
                     onClick={() => navigate('/pricing')}
                     className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-full text-white bg-accent hover:bg-[#03BB26]/85"
