@@ -615,12 +615,8 @@ const Profil = () => {
                   ) : null}
                   <button
                     onClick={() => navigate('/pricing')}
-                    className="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-full text-white bg-accent hover:bg-[#03BB26]/85"
+                    className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-full text-white bg-accent hover:bg-[#03BB26]/85 transition-colors"
                   >
-                    <span className="inline-flex items-center bg-white/20 text-white text-xs font-semibold mr-3 px-2.5 py-0.5 rounded-full">
-                      <Zap size={14} className="mr-1" />
-                      Premium
-                    </span>
                     Je m’abonne à top ECOS Premium
                   </button>
                 </div>
