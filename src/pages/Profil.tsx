@@ -563,11 +563,7 @@ const Profil = () => {
                   ))}
                 </ul>
                 <div className="flex justify-end">
-                  {isTrialActive ? (
-                    <div className="inline-flex items-center justify-center px-5 py-3 border border-accent text-base font-medium rounded-full text-accent bg-white">
-                      Essai top ECOS Premium activé, valide jusqu'au {formatTrialEndDate(trialEndsAt)}
-                    </div>
-                  ) : (
+                  {isPremiumUser ? (
                     <button
                       onClick={handleManageSubscription}
                       disabled={isManagingSubscription}
@@ -583,7 +579,11 @@ const Profil = () => {
                         </>
                       )}
                     </button>
-                  )}
+                  ) : isTrialActive ? (
+                    <div className="inline-flex items-center justify-center px-5 py-3 border border-accent text-base font-medium rounded-full text-accent bg-white">
+                      Essai top ECOS Premium activé, valide jusqu'au {formatTrialEndDate(trialEndsAt)}
+                    </div>
+                  ) : null}
                 </div>
               </>
             ) : (

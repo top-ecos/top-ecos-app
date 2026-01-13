@@ -61,7 +61,10 @@ Deno.serve(async (req) => {
     const trialEndsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const { error: updateError } = await supabaseClient
       .from('profiles')
-      .update({ trial_ends_at: trialEndsAt })
+      .update({ 
+        trial_ends_at: trialEndsAt,
+        tokens: 250 
+      })
       .eq('user_id', user.id);
 
     if (updateError) throw updateError;
