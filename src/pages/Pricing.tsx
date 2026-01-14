@@ -47,7 +47,7 @@ const pricingTiers: PricingPlan[] = [
             'Stations en illimité',
             '+10 nouvelles stations / semaine',
             'Classement hebdomadaire dynamique',
-            'Classement par station',
+            'Rappels de cours personnalisés',
             'Évaluation IA complète',
             'Accès prioritaire au support'
         ],
@@ -68,7 +68,7 @@ const pricingTiers: PricingPlan[] = [
             'Stations en illimité',
             '+10 nouvelles stations / semaine',
             'Classement hebdomadaire dynamique',
-            'Classement par station',
+            'Rappels de cours personnalisés',
             'Évaluation IA complète',
             'Accès prioritaire au support',
             'Accès anticipé aux nouvelles fonctionnalités'
