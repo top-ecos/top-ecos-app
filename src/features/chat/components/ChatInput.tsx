@@ -68,8 +68,8 @@ const ChatInput = ({
     lang: "fr-FR",
     interimResults: true,
     continuous: false,
-    maxDurationMs: 45000,
-    silenceMs: 3000,
+    maxDurationMs: 60000,
+    silenceMs: 3500,
     onResult: (text, isFinal) => {
       const base = baseTextRef.current || "";
       const prevFinal = finalDictationRef.current || "";
