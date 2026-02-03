@@ -45,7 +45,7 @@ const pricingTiers: PricingPlan[] = [
         subtitle: 'pour t\'entraîner à ton rythme.',
         features: [
             'Stations en illimité',
-            '+10 nouvelles stations / semaine',
+            '+15 nouvelles stations / semaine',
             'Classement hebdomadaire dynamique',
             'Rappels de cours personnalisés',
             'Évaluation IA complète',
@@ -66,7 +66,7 @@ const pricingTiers: PricingPlan[] = [
         footnote: '*paiement unique, premium activé jusqu\'au 4 juin 2026',
         features: [
             'Stations en illimité',
-            '+10 nouvelles stations / semaine',
+            '+15 nouvelles stations / semaine',
             'Classement hebdomadaire dynamique',
             'Rappels de cours personnalisés',
             'Évaluation IA complète',
