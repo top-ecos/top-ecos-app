@@ -327,17 +327,6 @@ const Ranking = () => {
               </Dialog>
             </div>
 
-            {/* Provisional notice when under 3 ranked tests (only after loading) */}
-            {!loading && user?.id && myRow && (myRow.completed_ranked_tests ?? 0) < 3 && (
-              <div className="mb-6">
-                <Alert className="bg-white border-blue-200 text-blue-700">
-                  <AlertDescription>
-                    Classement provisoire, termine les 3 stations classées pour entrer dans le classement
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-
             {/* Content */}
             {loading ? (
               <div className="flex items-center justify-center py-16">
@@ -351,6 +340,30 @@ const Ranking = () => {
                 <CardContent className="p-8 text-center">
                   <p className="text-subtext mb-4">{error}</p>
                   <Button onClick={() => window.location.reload()} variant="secondary">Réessayer</Button>
+                </CardContent>
+              </Card>
+            ) : user?.id && myRow && (myRow.completed_ranked_tests ?? 0) < 3 ? (
+              <Card className="bg-white border-border">
+                <CardContent className="p-8 text-center space-y-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <Info className="h-10 w-10 text-blue-600" />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-semibold text-text">
+                    Termine les 3 stations classées
+                  </h2>
+                  <p className="text-subtext">
+                    Tu as complété {myRow.completed_ranked_tests ?? 0} station{(myRow.completed_ranked_tests ?? 0) > 1 ? 's' : ''} sur 3. Complète les {3 - (myRow.completed_ranked_tests ?? 0)} station{(3 - (myRow.completed_ranked_tests ?? 0)) > 1 ? 's' : ''} restante{(3 - (myRow.completed_ranked_tests ?? 0)) > 1 ? 's' : ''} pour voir ton classement et te comparer aux autres étudiants.
+                  </p>
+                  <div className="pt-2">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full md:w-auto md:px-6 md:min-w-[260px] text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-[var(--accent)]"
+                      onClick={() => navigate('/')}
+                    >
+                      Aller aux stations classées
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
@@ -395,7 +408,7 @@ const Ranking = () => {
                 </Card>
 
                 {/* Personal ranking (if not in top 10) */}
-                {user?.id && !rows.some(r => r.user_id === user.id) && myRow && (
+                {user?.id && !rows.some(r => r.user_id === user.id) && myRow && (myRow.completed_ranked_tests ?? 0) >= 3 && (
                   <Card className="bg-white border-border">
                     <CardContent className="px-6 py-4">
                       <div className="flex items-center">
