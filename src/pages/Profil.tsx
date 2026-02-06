@@ -259,7 +259,7 @@ const Profil = () => {
 
   const freePlanLimitations = [
     "Stations en illimité",
-    "+10 nouvelles stations / semaine",
+    "+15 nouvelles stations / semaine",
     "Classement hebdomadaire dynamique",
     "Classement par station",
     "Évaluation IA complète",
