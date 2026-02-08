@@ -67,9 +67,9 @@ const ChatInput = ({
   const { isSupported, isListening, error, start, stop } = useSpeechRecognition({
     lang: "fr-FR",
     interimResults: true,
-    continuous: false,
+    continuous: true,
     maxDurationMs: 60000,
-    silenceMs: 3500,
+    silenceMs: 10000,
     onResult: (text, isFinal) => {
       const base = baseTextRef.current || "";
       const prevFinal = finalDictationRef.current || "";
