@@ -69,7 +69,7 @@ const ChatInput = ({
     interimResults: true,
     continuous: true,
     maxDurationMs: 60000,
-    silenceMs: 5000,
+    silenceMs: 3000,
     onResult: (text, isFinal) => {
       const base = baseTextRef.current || "";
       const prevFinal = finalDictationRef.current || "";
