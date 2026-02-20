@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Profile } from '@/shared/types/profile.types';
 import { StorageManager } from '@/shared/lib/storage';
+import { isUserPremium } from '@/shared/lib/premium';
 
 export const useProfile = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -21,7 +22,7 @@ export const useProfile = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id,user_id,first_name,last_name,level,tokens,created_at,updated_at,pseudo,phone,premium,emoji')
+        .select('id,user_id,first_name,last_name,level,tokens,created_at,updated_at,pseudo,phone,premium,emoji,trial_ends_at,access_expires_at')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -65,7 +66,7 @@ export const useProfile = () => {
       try {
         const { data, error } = await supabase
           .from('profiles')
-          .select('id,user_id,first_name,last_name,level,tokens,created_at,updated_at,pseudo,phone,premium,emoji')
+          .select('id,user_id,first_name,last_name,level,tokens,created_at,updated_at,pseudo,phone,premium,emoji,trial_ends_at,access_expires_at')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -92,5 +93,8 @@ export const useProfile = () => {
     fetchProfile();
   }, [user]);
 
-  return { profile, loading, updateTokens, refreshProfile };
+  // Compute premium access (includes subscription, trial, and one-time purchases)
+  const hasPremiumAccess = useMemo(() => isUserPremium(profile), [profile]);
+
+  return { profile, loading, updateTokens, refreshProfile, hasPremiumAccess };
 };

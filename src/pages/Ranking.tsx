@@ -12,6 +12,7 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { useProfile } from '@/shared/hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
+import { isUserPremium } from '@/shared/lib/premium';
 
 type RankingRow = {
   user_id: string;
@@ -114,26 +115,24 @@ const getWeekStart = (d = new Date()) => {
 
 const Ranking = () => {
   // Premium gating (align with Home logic)
-  const { profile, loading: profileLoading } = useProfile();
-  const [cachedPremium, setCachedPremium] = useState<boolean | null>(() => {
+  const { profile, loading: profileLoading, hasPremiumAccess } = useProfile();
+  
+  // Cache-first premium check for instant UI response
+  const [cachedHasPremium, setCachedHasPremium] = useState<boolean | null>(() => {
     const cache = typeof StorageManager?.getProfileCache === 'function'
       ? StorageManager.getProfileCache()
       : null;
-    return cache ? Boolean(cache.data.premium) : null;
+    return cache ? isUserPremium(cache.data) : null;
   });
-  const isPremiumEffective = typeof profile?.premium === 'boolean' ? Boolean(profile.premium) : Boolean(cachedPremium);
+  
+  // Use hook's hasPremiumAccess when profile is loaded, otherwise use cached value
+  const isPremiumEffective = hasPremiumAccess ?? cachedHasPremium ?? false;
+  
+  // Update cache when profile changes
   useEffect(() => {
-    if (typeof profile?.premium !== 'boolean') return;
-
-    const cache = typeof StorageManager?.getProfileCache === 'function'
-      ? StorageManager.getProfileCache()
-      : null;
-    const data = { ...cache?.data, premium: profile.premium };
-
-    if (typeof StorageManager?.setProfileCache === 'function') {
-      StorageManager.setProfileCache(data);
-    }
-  }, [profile?.premium]);
+    if (!profile) return;
+    setCachedHasPremium(hasPremiumAccess);
+  }, [profile, hasPremiumAccess]);
 
   const [loading, setLoading] = useState(true);
   const [rows, setRows] = useState<RankingRow[]>([]);
@@ -258,7 +257,7 @@ const Ranking = () => {
 
   // Premium gate: show instantly for known free users (from cache or profile),
   // even if profile is still loading to avoid any spinner flash.
-  const premiumKnown = (typeof profile?.premium === 'boolean') || (typeof cachedPremium === 'boolean');
+  const premiumKnown = profile !== null || cachedHasPremium !== null;
   if (premiumKnown && !isPremiumEffective) {
     return (
       <Layout>
@@ -274,7 +273,7 @@ const Ranking = () => {
                     Accès au classement réservé aux abonnés
                   </h1>
                   <p className="text-subtext">
-                    Passe à top ECOS Premium pour comparer tes performances à celles des autres étudiants. Chaque semaine, 3 nouvelles stations classées t’attendent parmi les 5 nouvelles ajoutées à la plateforme.
+                    Passe à top ECOS Premium pour comparer tes performances à celles des autres étudiants. Chaque semaine, 3 nouvelles stations classées t’attendent parmi les 10 nouvelles ajoutées à la plateforme.
                   </p>
                   <div className="pt-2">
                     <Button
@@ -328,17 +327,6 @@ const Ranking = () => {
               </Dialog>
             </div>
 
-            {/* Provisional notice when under 3 ranked tests (only after loading) */}
-            {!loading && user?.id && myRow && (myRow.completed_ranked_tests ?? 0) < 3 && (
-              <div className="mb-6">
-                <Alert className="bg-white border-blue-200 text-blue-700">
-                  <AlertDescription>
-                    Classement provisoire, termine les 3 stations classées pour entrer dans le classement
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-
             {/* Content */}
             {loading ? (
               <div className="flex items-center justify-center py-16">
@@ -352,6 +340,30 @@ const Ranking = () => {
                 <CardContent className="p-8 text-center">
                   <p className="text-subtext mb-4">{error}</p>
                   <Button onClick={() => window.location.reload()} variant="secondary">Réessayer</Button>
+                </CardContent>
+              </Card>
+            ) : user?.id && myRow && (myRow.completed_ranked_tests ?? 0) < 3 ? (
+              <Card className="bg-white border-border">
+                <CardContent className="p-8 text-center space-y-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <Info className="h-10 w-10 text-blue-600" />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-semibold text-text">
+                    Termine les 3 stations classées
+                  </h2>
+                  <p className="text-subtext">
+                    Tu as complété {myRow.completed_ranked_tests ?? 0} station{(myRow.completed_ranked_tests ?? 0) > 1 ? 's' : ''} sur 3. Complète les {3 - (myRow.completed_ranked_tests ?? 0)} station{(3 - (myRow.completed_ranked_tests ?? 0)) > 1 ? 's' : ''} restante{(3 - (myRow.completed_ranked_tests ?? 0)) > 1 ? 's' : ''} pour voir ton classement et te comparer aux autres étudiants.
+                  </p>
+                  <div className="pt-2">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full md:w-auto md:px-6 md:min-w-[260px] text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-[var(--accent)]"
+                      onClick={() => navigate('/')}
+                    >
+                      Aller aux stations classées
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
@@ -396,7 +408,7 @@ const Ranking = () => {
                 </Card>
 
                 {/* Personal ranking (if not in top 10) */}
-                {user?.id && !rows.some(r => r.user_id === user.id) && myRow && (
+                {user?.id && !rows.some(r => r.user_id === user.id) && myRow && (myRow.completed_ranked_tests ?? 0) >= 3 && (
                   <Card className="bg-white border-border">
                     <CardContent className="px-6 py-4">
                       <div className="flex items-center">

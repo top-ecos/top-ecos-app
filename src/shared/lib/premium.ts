@@ -10,8 +10,29 @@ const toBool = (v: unknown): boolean => {
   return false;
 };
 
-export const isUserPremium = (profile: { premium?: unknown } | null | undefined): boolean => {
-  return toBool(profile?.premium);
+/**
+ * Check if a user has premium access through any of:
+ * - Active premium subscription (premium = true)
+ * - Active free trial (trial_ends_at > now)
+ * - Active one-time purchase like Season Pass (access_expires_at > now)
+ */
+export const isUserPremium = (profile: { 
+  premium?: unknown; 
+  trial_ends_at?: string | null;
+  access_expires_at?: string | null;
+} | null | undefined): boolean => {
+  // Check paid subscription
+  if (toBool(profile?.premium)) return true;
+  
+  const now = new Date();
+  
+  // Check active trial
+  if (profile?.trial_ends_at && new Date(profile.trial_ends_at) > now) return true;
+  
+  // Check one-time purchase (Season Pass)
+  if (profile?.access_expires_at && new Date(profile.access_expires_at) > now) return true;
+  
+  return false;
 };
 
 export const isSddPremium = (sdd: Partial<SDD> | { premium?: unknown }): boolean => {

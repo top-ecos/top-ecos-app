@@ -23,9 +23,17 @@ interface EvaluationResultsProps {
   result: EvaluationResult;
   stationTitle: string;
   stationId: string;
+  ednItemNumber?: string | null;
+  ednItemName?: string | null;
 }
 
-const EvaluationResults = ({ result, stationTitle, stationId }: EvaluationResultsProps) => {
+const EvaluationResults = ({ 
+  result, 
+  stationTitle, 
+  stationId,
+  ednItemNumber,
+  ednItemName 
+}: EvaluationResultsProps) => {
   const {
     maxClinicalScore,
     maxCommunicationScore,
@@ -126,7 +134,11 @@ const EvaluationResults = ({ result, stationTitle, stationId }: EvaluationResult
 
       {/* AI Recommendations for Premium Users */}
       {result.ai_recommendations && (
-        <RecommendationsSection recommendations={result.ai_recommendations} />
+        <RecommendationsSection 
+          recommendations={result.ai_recommendations}
+          ednItemNumber={ednItemNumber}
+          ednItemName={ednItemName}
+        />
       )}
 
       {/* Conseils pédagogiques retirés selon les spécifications */}

@@ -12,7 +12,7 @@ export const useEvaluation = (caseData: CaseData, messages: Message[]) => {
   const [isEvaluating, setIsEvaluating] = useState(false);
   const [sessionStartTime] = useState(new Date());
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile, hasPremiumAccess } = useProfile();
 
   const evaluatePerformance = useCallback(async () => {
     setIsEvaluating(true);
@@ -24,7 +24,8 @@ export const useEvaluation = (caseData: CaseData, messages: Message[]) => {
 
       // Choisir la bonne Edge Function selon le type de station et l'environnement
       const useGPT5 = import.meta.env.VITE_USE_GPT5_EVALUATION === 'true';
-      const isPremium = profile?.premium || false;
+      // Use hasPremiumAccess which includes subscription, trial, and one-time purchases
+      const isPremium = hasPremiumAccess;
 
       let functionName: string;
       if (caseData.Type_de_station === 'Sèche') {
@@ -122,7 +123,7 @@ export const useEvaluation = (caseData: CaseData, messages: Message[]) => {
     } finally {
       setIsEvaluating(false);
     }
-  }, [caseData, messages, user, sessionStartTime, profile?.level]);
+  }, [caseData, messages, user, sessionStartTime, profile?.level, hasPremiumAccess]);
 
   const saveResults = useCallback(async (evaluationData: EvaluationResult) => {
     try {

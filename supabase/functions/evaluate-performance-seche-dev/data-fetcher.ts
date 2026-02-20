@@ -19,17 +19,33 @@ export async function fetchEvaluationDataSeche(sddId) {
       error: null
     };
   }
-  // Pour la nouvelle table sdds, les aptitudes de communication sont directement dans la table principale
-  const communicationSkills = [
+  // Récupération des IDs des aptitudes de communication pour cette station
+  const communicationIds = [
     evaluationData.aptitude_communication_id_1,
     evaluationData.aptitude_communication_id_2,
     evaluationData.aptitude_communication_id_3,
     evaluationData.aptitude_communication_id_4,
     evaluationData.aptitude_communication_id_5
-  ].filter((skill)=>skill !== null && skill !== undefined && skill !== '').map((skill, index)=>({
-      aptitude_communication_id: `comm_${index + 1}`,
-      description: skill
-    }));
+  ].filter((id)=>id !== null && id !== undefined && id !== '').map((id)=>parseInt(id, 10)).filter((id)=>!isNaN(id));
+  
+  console.log('Communication IDs to fetch:', communicationIds);
+  
+  let communicationSkills = [];
+  if (communicationIds.length > 0) {
+    const { data: skillsData, error: skillsError } = await supabase.from('SDD_Type_A_Eval_2_MVP').select('*').in('aptitude_communication_id', communicationIds);
+    if (skillsError) {
+      console.error('Error fetching communication skills:', skillsError);
+      return {
+        data: evaluationData,
+        communicationSkills: [],
+        error: skillsError
+      };
+    }
+    communicationSkills = skillsData || [];
+    console.log('Fetched communication skills:', communicationSkills.length, 'skills');
+    console.log('Skills details:', JSON.stringify(communicationSkills, null, 2));
+  }
+  
   return {
     data: evaluationData,
     communicationSkills,

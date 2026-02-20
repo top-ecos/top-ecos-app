@@ -12,6 +12,7 @@ export type SDD = {
   sdd_titre: string | null;
   Type_de_station: string | null; // derived from sdd_type
   item_EDN: string | null;        // sdds.item_edn is TEXT
+  item_edn_name: string | null;  // sdds.item_edn_name - EDN item name/title
   consignes_etudiant: string | null;
   official_id: string | null;
   specialite: string | null;      // from sdd_specialite
@@ -68,6 +69,7 @@ export const useSDD = () => {
           sdd_specialite,
           official_id,
           item_edn,
+          item_edn_name,
           include_documents,
           premium,
           ranked,
@@ -86,6 +88,7 @@ export const useSDD = () => {
         sdd_specialite?: string | null;
         official_id?: string | null;
         item_edn?: string | null;
+        item_edn_name?: string | null;
         include_documents?: boolean | null;
         premium?: boolean | string | number | null;
         ranked?: boolean | string | number | null;
@@ -110,6 +113,7 @@ export const useSDD = () => {
           sdd_titre: row?.sdd_titre ?? null,
           Type_de_station: deriveTypeDeStation(sddType),
           item_EDN: row?.item_edn ?? null,             // TEXT in sdds
+          item_edn_name: row?.item_edn_name ?? null,   // EDN item name/title
           consignes_etudiant: row?.consignes_etudiant ?? null,
           specialite: row?.sdd_specialite ?? null,
           official_id: row?.official_id ?? null,

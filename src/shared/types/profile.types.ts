@@ -13,6 +13,8 @@ export interface Profile {
   pseudo: string | null;
   phone: string | null;
   emoji: string | null;
+  trial_ends_at?: string | null;
+  access_expires_at?: string | null;
   created_at: string;
   updated_at: string;
 }

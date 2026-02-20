@@ -54,8 +54,10 @@ RÈGLES POUR L'ÉVALUATION COMMUNICATION:
 - Score 0 = niveau 1, Score 0.25 = niveau 2, Score 0.5 = niveau 3, Score 0.75 = niveau 4, Score 1 = niveau 5
 - Pour chaque compétence, choisis le niveau qui correspond le mieux à la performance observée
 - Évite de donner la même note à toutes les compétences - différencie selon la performance réelle
-- Maximum 1-2 citations courtes par compétence (pas de longs extraits)
+- Tu peux citer des éléments énoncés par l'étudiant pour illustrer ton feedback (maximum 1-2 citations courtes par compétence (pas de longs extraits)) 
 - Indique BRIÈVEMENT ce qui aurait permis d'obtenir le niveau supérieur (conseil d'amélioration)
+- Exemple de feedback attendu pour Aptitude à structurer / mener l'entrevue : "Un interrogatoire globalement bien structuré : tu commences par des questions sur l'état général du patient et tu continues par des questions sur la lésion pour laquelle le patient vient consulter. La prochaine fois, essaie d'aller encore plus dans le détail de la pathologie, tout en gardant une approche logique et structurée"
+- Exemple de feedback attendu pour Aptitude à questionner : "La plupart des questions sont pertinentes, continue comme ça ! En revanche, tu n'as pas couvert la totalité des attendus pour cette station (exemple : aucune question sur les addictions et la consommation de toxiques). La prochaine fois, pose plus de questions ouvertes et sois exhaustif dans ton interrogatoire."
 - Évite les répétitions et les énumérations exhaustives de tous les éléments dits par l'étudiant
 
 MÉTHODE D'ÉVALUATION SYSTÉMATIQUE:
@@ -124,7 +126,7 @@ FORMAT JSON OBLIGATOIRE:
     }
     // OBLIGATOIRE: Générer un objet pour CHAQUE action des ${expectedActions.length} actions attendues
   ],
-  "communication_details": {${communicationSkills.map((skill)=>`\n    "${skill.aptitude_communication_name?.toLowerCase().replace(/\s+/g, '_') || `aptitude_${skill.aptitude_communication_id}`}": {\n      "score": [score selon barème],\n      "niveau_atteint": "Descriptif BREF du niveau atteint",\n      "justification": "1-2 citations courtes maximum",\n      "conseil_amelioration": "Ce qui aurait permis d'obtenir le niveau supérieur (1 phrase)"\n    }`).join(',')}
+  "communication_details": {${communicationSkills.map((skill)=>`\n    "${skill.aptitude_communication_name?.toLowerCase().replace(/\s+/g, '_') || `aptitude_${skill.aptitude_communication_id}`}": {\n      "score": [score selon barème],\n      "niveau_atteint": "Descriptif BREF du niveau atteint",\n      "justification": "Explication du niveau atteint (exemple : Un interrogatoire globalement bien structuré : tu commences par des questions sur l'état général du patient et tu continues par des questions sur la lésion pour laquelle le patient vient consulter.)",\n      "conseil_amelioration": "Ce qui aurait permis d'obtenir le niveau supérieur (1 phrase, exemple : La prochaine fois, essaie d'aller encore plus dans le détail de la pathologie, tout en gardant une approche logique et structurée.)"\n    }`).join(',')}
   },
   "feedback": "Conseil pédagogique personnalisé pour l'étudiant"
 }`;
