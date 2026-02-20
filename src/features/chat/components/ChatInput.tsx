@@ -1,7 +1,5 @@
 
 import { useEffect, useRef, useState } from "react";
-import { Button } from "@/shared/components/ui/button-premium";
-import { Textarea } from "@/shared/components/ui/textarea";
 import { Mic, MicOff, Send } from "lucide-react";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { toast } from "@/shared/components/ui/sonner";
@@ -16,12 +14,12 @@ interface ChatInputProps {
   placeholderText?: string;
 }
 
-const ChatInput = ({ 
-  inputMessage, 
-  isLoading, 
+const ChatInput = ({
+  inputMessage,
+  isLoading,
   isPaused,
   isTimeUp,
-  onInputChange, 
+  onInputChange,
   onSend,
   placeholderText,
 }: ChatInputProps) => {
@@ -40,11 +38,9 @@ const ChatInput = ({
   const handleSend = async () => {
     if (isSending || !inputMessage.trim() || isDisabled) return;
 
-    // If dictation is active, stop first and wait for it to end
     if (isListening) {
       stop();
       const started = Date.now();
-      // Wait up to 1500ms for isListening to flip to false
       while (Date.now() - started < 1500) {
         // eslint-disable-next-line no-await-in-loop
         await new Promise((r) => setTimeout(r, 50));
@@ -63,7 +59,6 @@ const ChatInput = ({
   const isDisabled = isLoading || isPaused || isTimeUp;
   const buttonDisabled = isDisabled || !inputMessage.trim() || isSending;
 
-  // Speech recognition integration
   const { isSupported, isListening, error, start, stop } = useSpeechRecognition({
     lang: "fr-FR",
     interimResults: true,
@@ -84,14 +79,10 @@ const ChatInput = ({
     },
   });
 
-  // Stop dictation if input becomes disabled (pause/timeup/loading)
   useEffect(() => {
-    if (isDisabled && isListening) {
-      stop();
-    }
+    if (isDisabled && isListening) stop();
   }, [isDisabled, isListening, stop]);
 
-  // Surface common errors as toasts (non-blocking)
   useEffect(() => {
     if (!error) return;
     const messages: Record<string, string> = {
@@ -116,63 +107,82 @@ const ChatInput = ({
     }
   };
 
+  const placeholder = isTimeUp
+    ? "Temps écoulé"
+    : isPaused
+      ? "En pause — reprends pour continuer"
+      : (placeholderText || "Procède à l'interrogatoire…");
+
   return (
-    <div className="p-4 bg-white">
-      <div className="flex items-end space-x-3">
-        <Textarea
+    <div className="px-3 pb-3 pt-2 bg-white">
+      {/* Unified pill input container */}
+      <div
+        className={`flex items-end gap-2 rounded-2xl border px-3 py-2 transition-all duration-200 ${
+          isDisabled
+            ? 'bg-gray-50 border-gray-200'
+            : 'bg-gray-50 border-gray-200 focus-within:border-gray-300 focus-within:bg-white focus-within:shadow-sm'
+        }`}
+      >
+        {/* Mic pulse ring when listening */}
+        {isListening && (
+          <span className="absolute inset-0 rounded-2xl pointer-events-none animate-ping border-2 border-red-300 opacity-30" />
+        )}
+
+        <textarea
           ref={textareaRef}
           value={inputMessage}
           onChange={(e) => onInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={
-            isTimeUp
-              ? "Temps écoulé - Impossible de continuer"
-              : isPaused
-                ? "Station en pause - Clique sur 'Reprendre' pour continuer"
-                : (placeholderText || "Procède à l’interrogatoire médical (Entrée pour envoyer, Maj + Entrée pour revenir à la ligne)")
-          }
+          placeholder={placeholder}
           disabled={isDisabled}
-          className={`flex-1 resize-none min-h-[50px] max-h-[120px] bg-white border border-gray-300 rounded-lg px-4 py-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 ${
-            isDisabled ? 'bg-gray-100 opacity-50' : ''
+          rows={1}
+          className={`flex-1 resize-none bg-transparent border-0 outline-none ring-0 focus:ring-0 focus:outline-none min-h-[44px] max-h-[120px] text-gray-900 placeholder-gray-400 text-sm py-2.5 leading-relaxed ${
+            isDisabled ? 'opacity-50 cursor-not-allowed' : ''
           }`}
-          style={{ 
-            height: 'auto',
-            minHeight: '50px'
-          }}
+          style={{ height: 'auto', minHeight: '44px' }}
           onInput={(e) => {
             const target = e.target as HTMLTextAreaElement;
             target.style.height = 'auto';
             target.style.height = Math.min(target.scrollHeight, 120) + 'px';
           }}
         />
-        {isSupported && (
-          <Button
-            onClick={toggleListening}
-            disabled={isDisabled}
-            className={`h-[50px] w-[50px] rounded-full flex items-center justify-center transition-colors duration-200 border ${
-              isListening
-                ? 'bg-red-500 hover:bg-red-600 text-white border-red-600 shadow-lg shadow-red-200'
-                : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300'
-            } ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-            title={isListening ? 'Arrêter la dictée' : 'Démarrer la dictée'}
-            aria-label={isListening ? 'Arrêter la dictée' : 'Démarrer la dictée'}
+
+        <div className="flex items-center gap-1.5 pb-1 flex-shrink-0">
+          {isSupported && (
+            <button
+              onClick={toggleListening}
+              disabled={isDisabled}
+              className={`h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
+                isListening
+                  ? 'bg-red-500 text-white shadow-md shadow-red-200 scale-105'
+                  : 'bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700'
+              } ${isDisabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+              title={isListening ? 'Arrêter la dictée' : 'Démarrer la dictée'}
+              aria-label={isListening ? 'Arrêter la dictée' : 'Démarrer la dictée'}
+            >
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </button>
+          )}
+
+          <button
+            onClick={handleSend}
+            disabled={buttonDisabled}
+            className={`h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 flex-none ${
+              buttonDisabled
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-[#03BB26] hover:bg-green-600 text-white shadow-sm hover:shadow-md hover:shadow-green-200 active:scale-95'
+            }`}
+            aria-label="Envoyer"
           >
-            {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
-          </Button>
-        )}
-        <Button 
-          onClick={handleSend}
-          disabled={buttonDisabled}
-          className="h-[50px] w-[50px] bg-[#03BB26] hover:bg-green-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Send className="h-5 w-5" />
-        </Button>
-      </div>
-      
-      {isTimeUp && (
-        <div className="mt-2 text-center text-red-600 font-medium">
-          Le temps est écoulé. C'est le moment d'évaluer ta performance ou de quitter la station.
+            <Send className="h-4 w-4" />
+          </button>
         </div>
+      </div>
+
+      {isTimeUp && (
+        <p className="mt-2 text-center text-xs text-red-400 font-medium">
+          Temps écoulé · Évalue ta performance ou quitte la station
+        </p>
       )}
     </div>
   );
