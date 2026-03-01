@@ -8,6 +8,7 @@ import {
   Trophy,
   User, 
   LogOut,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { cn } from '@/shared/lib/utils';
@@ -38,6 +39,12 @@ const navigation: SidebarItem[] = [
     icon: <Trophy size={22} strokeWidth={1.5} />,
     label: 'Classement',
     href: '/ranking'
+  },
+  {
+    id: 'ecos-blanc',
+    icon: <ClipboardCheck size={22} strokeWidth={1.5} />,
+    label: 'ECOS blanc',
+    href: '/ecos-blanc'
   },
   {
     id: 'dashboard',

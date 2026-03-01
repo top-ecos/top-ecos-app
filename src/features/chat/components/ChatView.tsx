@@ -181,6 +181,8 @@ interface ChatViewProps {
   onEvaluate: () => void;
   onTogglePause: () => void;
   onResetStation: () => void;
+  examMode?: boolean;
+  examProgress?: string;
 }
 
 
@@ -199,7 +201,9 @@ const ChatView = React.memo(({
   onBack,
   onEvaluate,
   onTogglePause,
-  onResetStation
+  onResetStation,
+  examMode = false,
+  examProgress,
 }: ChatViewProps) => {
 
   const [showConsignes, setShowConsignes] = useState(false);
@@ -227,6 +231,8 @@ const ChatView = React.memo(({
           onTogglePause={onTogglePause}
           onReset={onResetStation}
           onShowConsignes={() => setShowConsignes(true)}
+          examMode={examMode}
+          examProgress={examProgress}
         />
       </div>
 

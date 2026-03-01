@@ -7,6 +7,7 @@ interface BottomActionBarProps {
   messagesLength: number;
   onTogglePause: () => void;
   onEvaluate: () => void;
+  examMode?: boolean;
 }
 
 // Sticky bottom action bar optimized for thumbs on mobile.
@@ -18,6 +19,7 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
   messagesLength,
   onTogglePause,
   onEvaluate,
+  examMode = false,
 }) => {
   const [bottomOffset, setBottomOffset] = useState(0);
 
@@ -38,8 +40,10 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
     };
   }, []);
 
-  const canEvaluate = !isEvaluating && (isTimeUp || messagesLength >= 3);
-  const evalLabel = isEvaluating ? "Évaluation..." : "Terminer et évaluer";
+  const canEvaluate = examMode
+    ? !isEvaluating && (isTimeUp || messagesLength >= 1)
+    : !isEvaluating && (isTimeUp || messagesLength >= 3);
+  const evalLabel = isEvaluating ? "Évaluation..." : (examMode ? "Terminer cette station" : "Terminer et évaluer");
 
   return (
     <div
@@ -50,33 +54,50 @@ const BottomActionBar: React.FC<BottomActionBarProps> = ({
       aria-label="Barre d'actions principale"
     >
       <div className="max-w-7xl mx-auto px-4 py-3">
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={onTogglePause}
-            className={`h-12 rounded-xl font-medium text-sm transition-colors border-2 ${
-              isPaused
-                ? 'border-green-500 text-green-600 bg-green-50'
-                : 'border-orange-400 text-orange-500 bg-orange-50'
-            }`}
-            aria-label={isPaused ? 'Reprendre la station' : 'Mettre la station en pause'}
-          >
-            {isPaused ? 'Reprendre' : 'Pause'}
-          </button>
+        {examMode ? (
+          // Exam mode: single full-width terminate button
           <button
             onClick={onEvaluate}
             disabled={!canEvaluate}
-            className={`h-12 rounded-xl font-semibold text-sm transition-colors border-2 ${
+            className={`w-full h-12 rounded-xl font-semibold text-sm transition-colors border-2 ${
               canEvaluate
                 ? 'border-emerald-500 text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
                 : 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'
             }`}
-            aria-label={isEvaluating ? 'Évaluation en cours' : 'Terminer et évaluer'}
+            aria-label={evalLabel}
           >
             {evalLabel}
           </button>
-        </div>
+        ) : (
+          // Normal mode: pause + evaluate
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={onTogglePause}
+              className={`h-12 rounded-xl font-medium text-sm transition-colors border-2 ${
+                isPaused
+                  ? 'border-green-500 text-green-600 bg-green-50'
+                  : 'border-orange-400 text-orange-500 bg-orange-50'
+              }`}
+              aria-label={isPaused ? 'Reprendre la station' : 'Mettre la station en pause'}
+            >
+              {isPaused ? 'Reprendre' : 'Pause'}
+            </button>
+            <button
+              onClick={onEvaluate}
+              disabled={!canEvaluate}
+              className={`h-12 rounded-xl font-semibold text-sm transition-colors border-2 ${
+                canEvaluate
+                  ? 'border-emerald-500 text-emerald-600 bg-emerald-50 hover:bg-emerald-100'
+                  : 'border-gray-300 text-gray-400 bg-gray-100 cursor-not-allowed'
+              }`}
+              aria-label={isEvaluating ? 'Évaluation en cours' : 'Terminer et évaluer'}
+            >
+              {evalLabel}
+            </button>
+          </div>
+        )}
         <div className="mt-2 text-center text-xs text-gray-500">
-          {isTimeUp ? 'Temps écoulé' : (isPaused ? 'En pause' : 'En cours')}
+          {isTimeUp ? 'Temps écoulé' : (examMode ? 'ECOS blanc' : (isPaused ? 'En pause' : 'En cours'))}
         </div>
       </div>
     </div>

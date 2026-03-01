@@ -12,12 +12,16 @@ import EvaluationView from "@/features/evaluation/components/EvaluationView";
 import LoadingEvaluation from "@/components/LoadingEvaluation";
 import type { CaseData } from "@/features/station/types/sdd.types";
 import type { EvaluationResult } from "@/features/evaluation/types/evaluation.types";
+import type { Message } from "@/features/chat/types/message.types";
 
 interface InteractiveSimulationProps {
   caseData: CaseData;
   onBack: () => void;
   initialPatientMessage?: string | null;
   preloadedEvaluation?: EvaluationResult;
+  examMode?: boolean;
+  examProgress?: string;
+  onSDDComplete?: (messages: Message[]) => void;
 }
 
 /**
@@ -34,7 +38,10 @@ const InteractiveSimulation = React.memo(({
   caseData,
   onBack,
   initialPatientMessage,
-  preloadedEvaluation
+  preloadedEvaluation,
+  examMode = false,
+  examProgress,
+  onSDDComplete,
 }: InteractiveSimulationProps) => {
   // Station progress management
   const { markStationCompleted, resetStationProgress, updateLastAttempt } = useStationProgress();
@@ -75,11 +82,24 @@ const InteractiveSimulation = React.memo(({
   const [hasShownEvaluation, setHasShownEvaluation] = useState(false);
 
   /**
-   * Evaluate student performance
+   * In exam mode: auto-end current SDD when timer runs out
+   */
+  useEffect(() => {
+    if (examMode && isTimeUp && onSDDComplete) {
+      onSDDComplete(messages);
+    }
+  }, [examMode, isTimeUp]); // intentionally not including messages/onSDDComplete to avoid re-triggering
+
+  /**
+   * Evaluate student performance (normal mode) or signal SDD complete (exam mode)
    */
   const handleEvaluate = useCallback(() => {
-    evaluatePerformance();
-  }, [evaluatePerformance]);
+    if (examMode && onSDDComplete) {
+      onSDDComplete(messages);
+    } else {
+      evaluatePerformance();
+    }
+  }, [examMode, onSDDComplete, messages, evaluatePerformance]);
 
   /**
    * Auto-show evaluation once completed
@@ -157,13 +177,13 @@ const InteractiveSimulation = React.memo(({
     onBack();
   }, [caseData.sdd_id, clearSavedData, onBack, resetStationProgress]);
 
-  // Show loading indicator during evaluation
-  if (isEvaluating) {
+  // In exam mode: never show inline evaluation views — results are deferred to exam results screen
+  if (!examMode && isEvaluating) {
     return <LoadingEvaluation />;
   }
 
-  // Show replay view
-  if (showReplay) {
+  // Show replay view (normal mode only)
+  if (!examMode && showReplay) {
     const transcript = effectiveEvaluation?.transcript_json;
     const replayMessages = transcript && Array.isArray(transcript) && transcript.length > 0
       ? transcript.map((m, idx) => ({
@@ -186,8 +206,8 @@ const InteractiveSimulation = React.memo(({
     );
   }
 
-  // Show evaluation view
-  if (showEvaluation && effectiveEvaluation) {
+  // Show evaluation view (normal mode only)
+  if (!examMode && showEvaluation && effectiveEvaluation) {
     return (
       <EvaluationView
         caseData={caseData}
@@ -213,10 +233,12 @@ const InteractiveSimulation = React.memo(({
       isEvaluating={isEvaluating}
       onInputChange={setInputMessage}
       onSendMessage={sendMessage}
-      onBack={handleQuitWithoutEvaluating}
+      onBack={examMode ? onBack : handleQuitWithoutEvaluating}
       onEvaluate={handleEvaluate}
       onTogglePause={togglePause}
       onResetStation={handleResetStation}
+      examMode={examMode}
+      examProgress={examProgress}
     />
   );
 });
