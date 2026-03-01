@@ -100,7 +100,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ isStarting, startError, onSta
 
         {!hasEnoughTokens && (
           <p className="text-center text-sm text-gray-400 mt-3">
-            Rechargez vos tokens ou passez à un abonnement premium pour continuer.
+            Passez à un abonnement premium pour continuer.
           </p>
         )}
       </div>
