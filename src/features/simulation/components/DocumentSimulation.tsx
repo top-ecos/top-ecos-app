@@ -21,6 +21,7 @@ interface DocumentSimulationProps {
   examMode?: boolean;
   examProgress?: string;
   onSDDComplete?: (messages: Message[]) => void;
+  initialDurationSeconds?: number;
 }
 
 /**
@@ -40,6 +41,7 @@ const DocumentSimulation = React.memo(({
   examMode = false,
   examProgress,
   onSDDComplete,
+  initialDurationSeconds,
 }: DocumentSimulationProps) => {
   // Station progress management
   const { markStationCompleted, resetStationProgress, updateLastAttempt } = useStationProgress();
@@ -62,7 +64,7 @@ const DocumentSimulation = React.memo(({
     togglePause,
     resetStation: resetChatState,
     clearSavedData
-  } = useChat(caseData, null);
+  } = useChat(caseData, initialDurationSeconds);
 
   // Local state for document notes (user messages only)
   const [documentMessages, setDocumentMessages] = useState<Array<{

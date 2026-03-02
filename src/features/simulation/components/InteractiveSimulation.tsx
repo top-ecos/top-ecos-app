@@ -22,6 +22,7 @@ interface InteractiveSimulationProps {
   examMode?: boolean;
   examProgress?: string;
   onSDDComplete?: (messages: Message[]) => void;
+  initialDurationSeconds?: number;
 }
 
 /**
@@ -42,6 +43,7 @@ const InteractiveSimulation = React.memo(({
   examMode = false,
   examProgress,
   onSDDComplete,
+  initialDurationSeconds,
 }: InteractiveSimulationProps) => {
   // Station progress management
   const { markStationCompleted, resetStationProgress, updateLastAttempt } = useStationProgress();
@@ -69,7 +71,7 @@ const InteractiveSimulation = React.memo(({
     sendMessage,
     resetStation: resetChatState,
     clearSavedData
-  } = useChat(caseData, initialPatientMessage);
+  } = useChat(caseData, initialDurationSeconds);
 
   // Unified evaluation for PS/PSS stations
   const { evaluationResult, isEvaluating, evaluatePerformance } = useUnifiedEvaluation(caseData, messages);

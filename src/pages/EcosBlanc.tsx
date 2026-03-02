@@ -58,6 +58,7 @@ const EcosBlanc: React.FC = () => {
       examProgress: `Station ${currentIndex + 1}/${totalStations}`,
       onSDDComplete: (messages: Message[]) => handleSDDComplete(messages),
       onBack: quitExam,
+      initialDurationSeconds: 8 * 60,
     };
 
     if (StationTypeManager.isDocumentStation(currentSdd)) {
