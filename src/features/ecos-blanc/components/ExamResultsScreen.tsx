@@ -1,171 +1,89 @@
 import React from 'react';
-import { CheckCircle2, XCircle, Loader2, RotateCcw, Home, TrendingUp, Award } from 'lucide-react';
+import { Loader2, RotateCcw, Home, TrendingUp, Award } from 'lucide-react';
+import { Card, CardContent } from '@/shared/components/ui/card-premium';
+import { Badge } from '@/shared/components/ui/badge-premium';
+import { Button } from '@/shared/components/ui/button-premium';
+import { deriveTypeLabel } from '@/features/station/lib/station';
 import type { CaseData } from '@/features/station/types/sdd.types';
 import type { EvaluationResult } from '@/features/evaluation/types/evaluation.types';
-import { deriveTypeLabel } from '@/features/station/lib/station';
 
 interface ExamResultsScreenProps {
   sdds: CaseData[];
   evaluationResults: (EvaluationResult | null)[];
   isEvaluatingSlots: boolean[];
+  onViewEvaluation: (index: number) => void;
   onQuit: () => void;
   onRestart: () => void;
 }
 
-const ScoreBadge = ({ score }: { score: number }) => {
-  const color =
-    score >= 14 ? 'bg-emerald-100 text-emerald-700 border-emerald-200' :
-    score >= 10 ? 'bg-amber-100 text-amber-700 border-amber-200' :
-    'bg-red-100 text-red-700 border-red-200';
+function getScoreColor(score: number) {
+  if (score >= 15) return 'text-primary';
+  if (score >= 10) return 'text-[#F39C12]';
+  return 'text-danger';
+}
 
-  return (
-    <span className={`inline-flex items-center border rounded-full px-2.5 py-0.5 text-sm font-bold ${color}`}>
-      {score.toFixed(1)}/20
-    </span>
-  );
-};
+function getScoreLabel(score: number) {
+  if (score >= 15) return 'Excellent';
+  if (score >= 12) return 'Bien';
+  if (score >= 10) return 'Satisfaisant';
+  return 'À améliorer';
+}
 
-const StationResult: React.FC<{
-  index: number;
-  caseData: CaseData;
-  result: EvaluationResult | null;
-  isEvaluating: boolean;
-}> = ({ index, caseData, result, isEvaluating }) => {
-  const typeLabel = deriveTypeLabel(caseData);
+function getBadgeStyles(type: string, content: string) {
+  const styles: { color: string; backgroundColor: string; border?: string } = {
+    color: '#707070',
+    backgroundColor: '#70707033',
+  };
 
-  return (
-    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-      {/* Station header */}
-      <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-gray-400">Station {index + 1}</span>
-            <span className="text-xs bg-gray-100 text-gray-600 rounded-full px-2 py-0.5">{typeLabel}</span>
-            {caseData.sdd_specialite && (
-              <span className="text-xs bg-blue-50 text-blue-600 rounded-full px-2 py-0.5">
-                {caseData.sdd_specialite}
-              </span>
-            )}
-          </div>
-          <h3 className="font-semibold text-gray-900 mt-0.5 truncate">
-            {caseData.sdd_titre || `Station ${index + 1}`}
-          </h3>
-        </div>
-        {isEvaluating ? (
-          <div className="flex items-center gap-2 text-sm text-gray-400 flex-shrink-0">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span>Évaluation…</span>
-          </div>
-        ) : result ? (
-          <ScoreBadge score={result.note_finale} />
-        ) : (
-          <span className="text-xs text-red-400 flex-shrink-0">Erreur</span>
-        )}
-      </div>
+  if (type === 'type') {
+    if (content === 'Patient Standardisé' || content === 'PS') {
+      styles.color = '#4299F6';
+      styles.backgroundColor = '#4299F633';
+    } else if (content === 'Patient Semi-Standardisé' || content === 'PSS') {
+      styles.color = '#9105F8';
+      styles.backgroundColor = '#9105F833';
+    } else if (content === 'Station sèche' || content === 'Sèche') {
+      styles.color = '#934F00';
+      styles.backgroundColor = '#934F0033';
+    } else if (content === 'Procédure') {
+      styles.color = '#28A745';
+      styles.backgroundColor = '#28A74533';
+    }
+  } else if (type === 'specialty') {
+    styles.color = '#F39C12';
+    styles.backgroundColor = '#F39C1233';
+  }
 
-      {/* Result body */}
-      {isEvaluating && (
-        <div className="px-5 py-6 text-center text-sm text-gray-400">
-          L'évaluation de cette station est en cours…
-        </div>
-      )}
-
-      {!isEvaluating && !result && (
-        <div className="px-5 py-4 text-sm text-red-500">
-          L'évaluation n'a pas pu être complétée pour cette station.
-        </div>
-      )}
-
-      {!isEvaluating && result && (
-        <div className="px-5 py-4 space-y-4">
-          {/* Score breakdown */}
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 mb-1">Clinique</p>
-              <p className="text-lg font-bold text-gray-900">{result.score_clinique ?? '—'}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-500 mb-1">Communication</p>
-              <p className="text-lg font-bold text-gray-900">{result.score_communication ?? '—'}</p>
-            </div>
-          </div>
-
-          {/* Feedback */}
-          {result.feedback && (
-            <p className="text-sm text-gray-600 leading-relaxed">{result.feedback}</p>
-          )}
-
-          {/* Actions summary */}
-          <div className="space-y-2">
-            {result.actions_reussies && result.actions_reussies.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-emerald-700 mb-1 flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Réussies ({result.actions_reussies.length})
-                </p>
-                <ul className="space-y-1">
-                  {result.actions_reussies.slice(0, 3).map((a, i) => (
-                    <li key={i} className="text-xs text-gray-600 pl-4 truncate">
-                      • {typeof a === 'string' ? a : a.action}
-                    </li>
-                  ))}
-                  {result.actions_reussies.length > 3 && (
-                    <li className="text-xs text-gray-400 pl-4">
-                      +{result.actions_reussies.length - 3} de plus
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
-            {result.actions_manquees && result.actions_manquees.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-red-600 mb-1 flex items-center gap-1">
-                  <XCircle className="h-3.5 w-3.5" />
-                  Manquées ({result.actions_manquees.length})
-                </p>
-                <ul className="space-y-1">
-                  {result.actions_manquees.slice(0, 3).map((a, i) => (
-                    <li key={i} className="text-xs text-gray-600 pl-4 truncate">
-                      • {a}
-                    </li>
-                  ))}
-                  {result.actions_manquees.length > 3 && (
-                    <li className="text-xs text-gray-400 pl-4">
-                      +{result.actions_manquees.length - 3} de plus
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+  return styles;
+}
 
 const ExamResultsScreen: React.FC<ExamResultsScreenProps> = ({
   sdds,
   evaluationResults,
   isEvaluatingSlots,
+  onViewEvaluation,
   onQuit,
   onRestart,
 }) => {
   const completedResults = evaluationResults.filter(Boolean) as EvaluationResult[];
   const allDone = !isEvaluatingSlots.some(Boolean);
-  const averageScore = completedResults.length > 0
-    ? completedResults.reduce((sum, r) => sum + (r.note_finale ?? 0), 0) / completedResults.length
-    : null;
+  const averageScore =
+    completedResults.length > 0
+      ? completedResults.reduce((sum, r) => sum + (r.note_finale ?? 0), 0) / completedResults.length
+      : null;
 
   const averageColor =
-    averageScore == null ? 'text-gray-400' :
-    averageScore >= 14 ? 'text-emerald-600' :
-    averageScore >= 10 ? 'text-amber-600' :
-    'text-red-600';
+    averageScore == null
+      ? 'text-gray-400'
+      : averageScore >= 15
+      ? 'text-primary'
+      : averageScore >= 10
+      ? 'text-[#F39C12]'
+      : 'text-danger';
 
   return (
     <div className="min-h-screen bg-surface-alt pb-24 md:pb-0">
-      <div className="max-w-2xl mx-auto px-4 py-10 sm:py-16">
+      <div className="max-w-3xl mx-auto px-4 py-10 sm:py-16">
 
         {/* Header */}
         <div className="mb-8">
@@ -196,17 +114,78 @@ const ExamResultsScreen: React.FC<ExamResultsScreenProps> = ({
           </div>
         )}
 
-        {/* Per-station results */}
+        {/* Per-station cards */}
         <div className="space-y-4 mb-8">
-          {sdds.map((sdd, i) => (
-            <StationResult
-              key={sdd.sdd_id}
-              index={i}
-              caseData={sdd}
-              result={evaluationResults[i]}
-              isEvaluating={isEvaluatingSlots[i]}
-            />
-          ))}
+          {sdds.map((sdd, i) => {
+            const result = evaluationResults[i];
+            const isEvaluating = isEvaluatingSlots[i];
+            const typeLabel = deriveTypeLabel(sdd);
+
+            return (
+              <Card key={sdd.sdd_id} className="bg-surface border-border p-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  {/* Left: station info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-gray-400 mb-1">Station {i + 1}</p>
+                    <h4 className="text-base sm:text-lg font-bold text-text mb-2 truncate">
+                      {sdd.sdd_titre || `Station ${i + 1}`}
+                    </h4>
+                    <div className="flex items-center flex-wrap gap-2">
+                      <Badge
+                        className="text-sm border-0 font-bold"
+                        style={getBadgeStyles('type', typeLabel)}
+                      >
+                        {typeLabel}
+                      </Badge>
+                      {sdd.sdd_specialite && (
+                        <Badge
+                          className="text-sm border-0 font-bold"
+                          style={getBadgeStyles('specialty', sdd.sdd_specialite)}
+                        >
+                          {sdd.sdd_specialite}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Center: score */}
+                  <div className="flex-shrink-0 text-center md:mx-8">
+                    {isEvaluating ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+                        <span className="text-xs text-gray-400">Évaluation…</span>
+                      </div>
+                    ) : result ? (
+                      <>
+                        <div
+                          className={`inline-flex items-center justify-center px-3 py-1 rounded-full border border-border text-base md:text-3xl font-bold ${getScoreColor(result.note_finale)}`}
+                        >
+                          {Math.round(result.note_finale * 10) / 10}/20
+                        </div>
+                        <div className="text-sm text-subtext mt-1">
+                          {getScoreLabel(result.note_finale)}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="text-xs text-red-400">Erreur</span>
+                    )}
+                  </div>
+
+                  {/* Right: action button */}
+                  <div className="flex-shrink-0">
+                    <Button
+                      variant="secondary"
+                      className="w-full md:w-auto min-h-[44px]"
+                      disabled={isEvaluating || !result}
+                      onClick={() => onViewEvaluation(i)}
+                    >
+                      Consulter la grille d'évaluation
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Actions */}
@@ -229,6 +208,7 @@ const ExamResultsScreen: React.FC<ExamResultsScreenProps> = ({
             <span>Retour à l'accueil</span>
           </button>
         </div>
+
       </div>
     </div>
   );

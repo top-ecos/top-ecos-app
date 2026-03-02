@@ -89,8 +89,7 @@ serve(async (req) => {
         lien_document_externe_4,
         lien_document_externe_5
       `)
-      .eq('status', 'live')
-      .neq('sdd_type', 'Document(s)');
+      .eq('status', 'live');
 
     if (sddError || !allSdds || allSdds.length < STATIONS_COUNT) {
       return new Response(JSON.stringify({
