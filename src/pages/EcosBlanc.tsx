@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { Layout } from '@/components/Layout';
+import { Card, CardContent } from '@/shared/components/ui/card-premium';
+import { Button } from '@/shared/components/ui/button-premium';
+import { useProfile } from '@/shared/hooks/useProfile';
 import { useExamBlanc } from '@/features/ecos-blanc/hooks/useExamBlanc';
 import IntroScreen from '@/features/ecos-blanc/components/IntroScreen';
 import CooldownScreen from '@/features/ecos-blanc/components/CooldownScreen';
@@ -22,6 +27,9 @@ import type { EvaluationResult } from '@/features/evaluation/types/evaluation.ty
  * During all other phases: Layout wrapper with sidebar.
  */
 const EcosBlanc: React.FC = () => {
+  const { hasPremiumAccess } = useProfile();
+  const navigate = useNavigate();
+
   const {
     phase,
     sdds,
@@ -79,6 +87,45 @@ const EcosBlanc: React.FC = () => {
         />
       );
     }
+  }
+
+  // Premium gate: non-premium users see a paywall on the intro screen.
+  // Once the exam is in progress the server has already confirmed access.
+  if ((phase === 'intro' || phase === 'starting') && hasPremiumAccess === false) {
+    return (
+      <Layout>
+        <div className="flex flex-col min-h-screen">
+          <div className="flex-1 py-6 px-4 md:py-10 md:px-8 lg:px-12 flex items-center justify-center">
+            <div className="w-full max-w-2xl">
+              <Card className="bg-surface border border-border">
+                <CardContent className="p-8 text-center space-y-4">
+                  <div className="flex items-center justify-center mb-2">
+                    <Lock className="h-10 w-10 text-primary" />
+                  </div>
+                  <h1 className="text-2xl md:text-3xl font-semibold text-text">
+                    ECOS blanc réservé aux abonnés Premium
+                  </h1>
+                  <p className="text-subtext">
+                    L'ECOS blanc enchaîne 5 stations aléatoires dans les conditions des ECOS nationaux.
+                    Cette fonctionnalité est réservée aux abonnés top ECOS Premium.
+                  </p>
+                  <div className="pt-2">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="w-full md:w-auto md:px-6 md:min-w-[260px] text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-[var(--accent)]"
+                      onClick={() => navigate('/pricing')}
+                    >
+                      Découvrir top ECOS Premium
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
