@@ -107,7 +107,7 @@ const EcosBlanc: React.FC = () => {
                     Mode ECOS blanc réservé aux abonnés
                   </h1>
                   <p className="text-subtext">
-                    Ce mode d'entraînement te permet d'enchaîner 5 stations aléatoires dans les conditions des ECOS nationaux (8 minutes par station / 2 minutes de pause entre chaque station).
+                    Ce mode d'entraînement te permet d'enchaîner 5 stations aléatoires dans les conditions des ECOS nationaux (8 min/station, 2 min de pause entre chaque station).
                   </p>
                   <div className="pt-2">
                     <Button
