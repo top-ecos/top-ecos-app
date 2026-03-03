@@ -64,7 +64,7 @@ const DocumentSimulation = React.memo(({
     togglePause,
     resetStation: resetChatState,
     clearSavedData
-  } = useChat(caseData, initialDurationSeconds);
+  } = useChat(caseData, initialDurationSeconds, examMode);
 
   // Local state for document notes (user messages only)
   const [documentMessages, setDocumentMessages] = useState<Array<{

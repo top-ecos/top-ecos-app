@@ -71,7 +71,7 @@ const InteractiveSimulation = React.memo(({
     sendMessage,
     resetStation: resetChatState,
     clearSavedData
-  } = useChat(caseData, initialDurationSeconds);
+  } = useChat(caseData, initialDurationSeconds, examMode);
 
   // Unified evaluation for PS/PSS stations
   const { evaluationResult, isEvaluating, evaluatePerformance } = useUnifiedEvaluation(caseData, messages);
