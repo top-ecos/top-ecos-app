@@ -8,6 +8,7 @@ import {
   Trophy,
   User, 
   LogOut,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { cn } from '@/shared/lib/utils';
@@ -17,6 +18,7 @@ interface SidebarItem {
   icon: React.ReactNode;
   label: string;
   href: string;
+  badge?: string;
 }
 
 // Updated navigation array to match the screenshot's text and icons
@@ -38,6 +40,13 @@ const navigation: SidebarItem[] = [
     icon: <Trophy size={22} strokeWidth={1.5} />,
     label: 'Classement',
     href: '/ranking'
+  },
+  {
+    id: 'ecos-blanc',
+    icon: <ClipboardCheck size={22} strokeWidth={1.5} />,
+    label: 'ECOS blanc',
+    href: '/ecos-blanc',
+    badge: 'beta',
   },
   {
     id: 'dashboard',
@@ -113,6 +122,11 @@ export const Sidebar: React.FC = () => {
                       {item.icon}
                     </div>
                     <span>{item.label}</span>
+                    {item.badge && (
+                      <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none rounded-full bg-amber-100 text-amber-700">
+                        {item.badge}
+                      </span>
+                    )}
                   </button>
                 </li>
               );
@@ -152,6 +166,11 @@ export const Sidebar: React.FC = () => {
                 >
                   <div className={cn("mb-1", active ? "text-[#03BB26]" : "text-gray-500")}>{item.icon}</div>
                   <span className="leading-none">{item.label}</span>
+                  {item.badge && (
+                    <span className="mt-0.5 px-1 py-px text-[8px] font-semibold uppercase leading-none rounded-full bg-amber-100 text-amber-700">
+                      {item.badge}
+                    </span>
+                  )}
                 </button>
               </li>
             );

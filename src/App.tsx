@@ -15,6 +15,7 @@ const History = lazy(() => import("./pages/history"));
 const HistoryEvaluation = lazy(() => import("./pages/HistoryEvaluation"));
 const Pricing = lazy(() => import("./pages/Pricing"));
 const Ranking = lazy(() => import("./pages/Ranking"));
+const EcosBlanc = lazy(() => import("./pages/EcosBlanc"));
 import { LazySimulation } from "@/features/simulation/components/LazySimulation";
 
 const queryClient = new QueryClient();
@@ -179,6 +180,23 @@ function App() {
                     </Suspense>
                   </ProtectedRoute>
                 } 
+              />
+              <Route
+                path="/ecos-blanc"
+                element={
+                  <ProtectedRoute>
+                    <Suspense fallback={
+                      <div className="min-h-screen bg-surface-alt flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
+                          <p className="text-subtext">Chargement de l'ECOS blanc…</p>
+                        </div>
+                      </div>
+                    }>
+                      <EcosBlanc />
+                    </Suspense>
+                  </ProtectedRoute>
+                }
               />
               <Route 
                 path="/simulation" 

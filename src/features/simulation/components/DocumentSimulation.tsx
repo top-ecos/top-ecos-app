@@ -12,11 +12,16 @@ import EvaluationView from "@/features/evaluation/components/EvaluationView";
 import LoadingEvaluation from "@/components/LoadingEvaluation";
 import type { CaseData } from "@/features/station/types/sdd.types";
 import type { EvaluationResult } from "@/features/evaluation/types/evaluation.types";
+import type { Message } from "@/features/chat/types/message.types";
 
 interface DocumentSimulationProps {
   caseData: CaseData;
   onBack: () => void;
   preloadedEvaluation?: EvaluationResult;
+  examMode?: boolean;
+  examProgress?: string;
+  onSDDComplete?: (messages: Message[]) => void;
+  initialDurationSeconds?: number;
 }
 
 /**
@@ -32,7 +37,11 @@ interface DocumentSimulationProps {
 const DocumentSimulation = React.memo(({
   caseData,
   onBack,
-  preloadedEvaluation
+  preloadedEvaluation,
+  examMode = false,
+  examProgress,
+  onSDDComplete,
+  initialDurationSeconds,
 }: DocumentSimulationProps) => {
   // Station progress management
   const { markStationCompleted, resetStationProgress, updateLastAttempt } = useStationProgress();
@@ -55,7 +64,7 @@ const DocumentSimulation = React.memo(({
     togglePause,
     resetStation: resetChatState,
     clearSavedData
-  } = useChat(caseData, null);
+  } = useChat(caseData, initialDurationSeconds);
 
   // Local state for document notes (user messages only)
   const [documentMessages, setDocumentMessages] = useState<Array<{
@@ -77,6 +86,17 @@ const DocumentSimulation = React.memo(({
   const [hasShownEvaluation, setHasShownEvaluation] = useState(false);
 
   /**
+   * In exam mode: auto-end current SDD when timer runs out
+   */
+  useEffect(() => {
+    if (examMode && isTimeUp && onSDDComplete) {
+      onSDDComplete(documentMessages as Message[]);
+    }
+  // intentionally not including documentMessages/onSDDComplete to avoid re-triggering
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [examMode, isTimeUp]);
+
+  /**
    * Add a note to the document analysis
    */
   const handleAddNote = useCallback(() => {
@@ -96,12 +116,16 @@ const DocumentSimulation = React.memo(({
   }, [noteInput, isPaused, isTimeUp]);
 
   /**
-   * Evaluate document analysis performance
+   * Evaluate document analysis performance, or signal SDD complete in exam mode
    */
   const handleEvaluate = useCallback(async () => {
+    if (examMode && onSDDComplete) {
+      onSDDComplete(documentMessages as Message[]);
+      return;
+    }
+
     if (documentMessages.length === 0) return;
 
-    // Convert local document messages to standard format for unified evaluation
     const formattedMessages = documentMessages.map(m => ({
       id: m.id,
       role: 'user' as const,
@@ -110,7 +134,7 @@ const DocumentSimulation = React.memo(({
     }));
 
     await evaluatePerformance(formattedMessages);
-  }, [documentMessages, evaluatePerformance]);
+  }, [examMode, onSDDComplete, documentMessages, evaluatePerformance]);
 
   /**
    * Auto-show evaluation once completed
@@ -192,13 +216,13 @@ const DocumentSimulation = React.memo(({
     onBack();
   }, [caseData.sdd_id, clearSavedData, onBack, resetStationProgress]);
 
-  // Show loading indicator during evaluation
-  if (isEvaluating) {
+  // In exam mode: never show inline evaluation/replay — results deferred to exam results screen
+  if (!examMode && isEvaluating) {
     return <LoadingEvaluation />;
   }
 
-  // Show replay view
-  if (showReplay) {
+  // Show replay view (normal mode only)
+  if (!examMode && showReplay) {
     const transcript = effectiveEvaluation?.transcript_json;
     const replayMessages = transcript && Array.isArray(transcript) && transcript.length > 0
       ? transcript.map((m, idx) => ({
@@ -221,8 +245,8 @@ const DocumentSimulation = React.memo(({
     );
   }
 
-  // Show evaluation view
-  if (showEvaluation && effectiveEvaluation) {
+  // Show evaluation view (normal mode only)
+  if (!examMode && showEvaluation && effectiveEvaluation) {
     return (
       <EvaluationView
         caseData={caseData}
@@ -248,10 +272,12 @@ const DocumentSimulation = React.memo(({
       isEvaluating={isEvaluating}
       onInputChange={setNoteInput}
       onSendMessage={handleAddNote}
-      onBack={handleQuitWithoutEvaluating}
+      onBack={examMode ? onBack : handleQuitWithoutEvaluating}
       onEvaluate={handleEvaluate}
       onTogglePause={togglePause}
       onResetStation={handleResetStation}
+      examMode={examMode}
+      examProgress={examProgress}
     />
   );
 });

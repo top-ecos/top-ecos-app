@@ -208,10 +208,10 @@ export class StationTypeManager {
     const type = this.getType(station);
     
     if (type === 'Sèche') {
-      return "Enchaîne tes réflexions médicales (Entrée pour envoyer, Maj + Entrée pour revenir à la ligne)";
+      return "Enchaîne tes réflexions médicales…";
     }
-    
-    return "Procède à l'interrogatoire médical (Entrée pour envoyer, Maj + Entrée pour revenir à la ligne)";
+
+    return "Procède à l'interrogatoire…";
   }
 
   /**

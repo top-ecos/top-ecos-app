@@ -19,28 +19,29 @@ const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
     const internalRef = useRef<HTMLDivElement>(null);
     const scrollContainerRef = ref || internalRef;
 
-    // Markdown formatting not used; render plain text for safety
-
-  return (
-      <div 
-        className="flex-1 px-6 py-4 overflow-y-auto bg-white" 
+    return (
+      <div
+        className="flex-1 px-4 py-4 overflow-y-auto bg-white"
         ref={scrollContainerRef}
       >
         <div
-          className="space-y-4 min-h-full"
+          className="space-y-3 min-h-full"
           role="list"
           aria-live="polite"
           aria-atomic="false"
           aria-busy={isLoading}
         >
+          {/* Consignes banner */}
           {consignes && (
-            <div className="flex justify-start" role="note" aria-label="Consignes de la station">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-xl md:max-w-none md:w-full shadow-sm">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+            <div className="flex justify-start mb-4" role="note" aria-label="Consignes de la station">
+              <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 w-full shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <AlertCircle className="h-4 w-4 text-blue-600" />
+                  </div>
                   <div className="text-sm text-blue-800 leading-relaxed whitespace-pre-line">
-                    <p className="font-semibold mb-1">Consignes de la station</p>
-                    <p>{consignes}</p>
+                    <p className="font-semibold mb-1 text-blue-700">Consignes de la station</p>
+                    <p className="text-blue-700/80">{consignes}</p>
                   </div>
                 </div>
               </div>
@@ -61,54 +62,70 @@ const ChatMessages = forwardRef<HTMLDivElement, ChatMessagesProps>(
               }
             >
               {message.role === 'system' ? (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-full shadow-sm">
-                  <div className="flex items-start space-x-3">
-                    <AlertCircle className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                /* System messages */
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 max-w-full shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div className="text-sm text-blue-800 leading-relaxed whitespace-pre-line">
                       {message.content}
                     </div>
                   </div>
                 </div>
               ) : message.role === 'user' ? (
-                /* Doctor messages (on the right, green) */
-                <div className="flex items-end space-x-2 max-w-[85%] sm:max-w-lg">
-                  <div className="bg-[#03BB26] text-white px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-br-md shadow-sm">
+                /* Doctor messages — right, green gradient */
+                <div className="flex items-end gap-2 max-w-[80%] sm:max-w-md">
+                  <div
+                    className="text-white px-4 py-3 rounded-[20px] rounded-br-[6px] shadow-sm"
+                    style={{
+                      background: 'linear-gradient(135deg, #03BB26 0%, #029921 100%)',
+                    }}
+                  >
                     <p className="text-sm leading-relaxed">{message.content}</p>
                   </div>
                 </div>
               ) : (
-                /* Patient messages (on the left, gray with avatar) */
-                <div className="flex items-start space-x-3 max-w-[85%] sm:max-w-lg">
-                  <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
-                    <User className="h-4 w-4 text-white" />
+                /* Patient / AI messages — left, white card */
+                <div className="flex items-end gap-2.5 max-w-[80%] sm:max-w-md">
+                  <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 mb-0.5">
+                    <User className="h-3.5 w-3.5 text-gray-500" />
                   </div>
-                  <div className="bg-gray-100 text-gray-900 px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl rounded-bl-md shadow-sm">
+                  <div className="bg-white border border-gray-200 text-gray-900 px-4 py-3 rounded-[20px] rounded-bl-[6px] shadow-sm">
                     <p className="text-sm leading-relaxed">{message.content}</p>
                   </div>
                 </div>
               )}
             </div>
           ))}
-          
+
+          {/* Typing indicator */}
           {isLoading && (
             <div className="flex justify-start" role="status" aria-live="polite" aria-label="Le patient est en train d'écrire">
-              <div className="flex items-start space-x-3 max-w-lg">
-                <div className="w-8 h-8 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="h-4 w-4 text-white" />
+              <div className="flex items-end gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                  <User className="h-3.5 w-3.5 text-gray-500" />
                 </div>
-                <div className="bg-gray-100 px-4 py-3 rounded-2xl rounded-bl-md shadow-sm">
-                  <div className="flex space-x-1">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+                <div className="bg-white border border-gray-200 px-4 py-3 rounded-[20px] rounded-bl-[6px] shadow-sm">
+                  <div className="flex items-center gap-1.5 h-4">
+                    <span
+                      className="w-2 h-2 rounded-full bg-gray-300 animate-bounce"
+                      style={{ animationDelay: '0ms', animationDuration: '1s' }}
+                    />
+                    <span
+                      className="w-2 h-2 rounded-full bg-gray-300 animate-bounce"
+                      style={{ animationDelay: '200ms', animationDuration: '1s' }}
+                    />
+                    <span
+                      className="w-2 h-2 rounded-full bg-gray-300 animate-bounce"
+                      style={{ animationDelay: '400ms', animationDuration: '1s' }}
+                    />
                   </div>
                 </div>
               </div>
             </div>
           )}
-          
-          {/* Espacement en bas pour s'assurer du scroll complet */}
-          <div className="h-8" />
+
+          {/* Bottom spacing */}
+          <div className="h-14" />
         </div>
       </div>
     );

@@ -6,11 +6,11 @@ import { Message, ConversationHistory } from "@/features/chat/types/message.type
 import { CaseData } from "@/features/station/types/sdd.types";
 import { StorageManager } from "@/shared/lib/storage";
 
-export const useChat = (caseData: CaseData) => {
+export const useChat = (caseData: CaseData, initialDurationSeconds = 10 * 60) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(10 * 60); // 10 minutes en secondes
+  const [timeRemaining, setTimeRemaining] = useState(initialDurationSeconds);
   const [isPaused, setIsPaused] = useState(false);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout>();
@@ -235,14 +235,14 @@ export const useChat = (caseData: CaseData) => {
     StorageManager.removeTimerState(caseData.sdd_id);
     
     // Réinitialiser l'état
-    setTimeRemaining(10 * 60);
+    setTimeRemaining(initialDurationSeconds);
     setIsPaused(false);
     setIsTimeUp(false);
     setInputMessage("");
     
     // Remettre un tableau de messages vide
     setMessages([]);
-  }, [caseData.sdd_id]);
+  }, [caseData.sdd_id, initialDurationSeconds]);
 
   // Fonction pour nettoyer les données sauvegardées
   const clearSavedData = useCallback(() => {
