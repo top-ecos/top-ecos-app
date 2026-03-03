@@ -104,11 +104,10 @@ const EcosBlanc: React.FC = () => {
                     <Lock className="h-10 w-10 text-primary" />
                   </div>
                   <h1 className="text-2xl md:text-3xl font-semibold text-text">
-                    Mode ECOS blanc réservé aux abonnés Premium
+                    Mode ECOS blanc réservé aux abonnés
                   </h1>
                   <p className="text-subtext">
-                    Ce mode d'entraînement te permet d'enchaîner 5 stations aléatoires dans les conditions des ECOS nationaux.
-                    Cette fonctionnalité est réservée aux abonnés top ECOS Premium.
+                    Ce mode d'entraînement te permet d'enchaîner 5 stations aléatoires dans les conditions des ECOS nationaux (8 minutes par station / 2 minutes de pause entre chaque station).
                   </p>
                   <div className="pt-2">
                     <Button
