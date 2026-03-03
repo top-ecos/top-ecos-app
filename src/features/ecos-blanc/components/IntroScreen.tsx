@@ -22,7 +22,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ isStarting, startError, onSta
           </div>
           <p className="text-gray-500 text-base leading-relaxed">
             Enchaîne 5 stations aléatoires dans les conditions des ECOS nationaux.
-            Chaque station dure 10 minutes. Une pause de 2 minutes sépare chaque station.
+            Chaque station dure 8 minutes. Une pause de 2 minutes sépare chaque station.
           </p>
         </div>
 
@@ -31,7 +31,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ isStarting, startError, onSta
           <h2 className="font-semibold text-gray-900 mb-4">Conditions de l'examen</h2>
           <ul className="space-y-3">
             {[
-              { icon: Clock, text: '5 stations de 10 minutes chacune' },
+              { icon: Clock, text: '5 stations de 8 minutes chacune' },
               { icon: ChevronRight, text: 'Pause de 2 minutes entre chaque station (passable)' },
               { icon: AlertCircle, text: 'Impossible de mettre en pause ou de quitter en cours de station' },
               { icon: ClipboardCheck, text: 'Évaluations affichées uniquement à la fin des 5 stations' },
