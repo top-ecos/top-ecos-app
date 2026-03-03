@@ -6,7 +6,7 @@ import { Message, ConversationHistory } from "@/features/chat/types/message.type
 import { CaseData } from "@/features/station/types/sdd.types";
 import { StorageManager } from "@/shared/lib/storage";
 
-export const useChat = (caseData: CaseData, initialDurationSeconds = 10 * 60) => {
+export const useChat = (caseData: CaseData, initialDurationSeconds = 10 * 60, skipPersistence = false) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -18,6 +18,10 @@ export const useChat = (caseData: CaseData, initialDurationSeconds = 10 * 60) =>
 
   // Charger les messages sauvegardés
   useEffect(() => {
+    if (skipPersistence) {
+      setMessages([]);
+      return;
+    }
     const savedMessages = StorageManager.getChatMessages(caseData.sdd_id);
     const savedTimer = StorageManager.getTimerState(caseData.sdd_id);
     
@@ -32,23 +36,25 @@ export const useChat = (caseData: CaseData, initialDurationSeconds = 10 * 60) =>
       setIsPaused(savedTimer.isPaused);
       setIsTimeUp(savedTimer.isTimeUp);
     }
-  }, [caseData.sdd_id]);
+  }, [caseData.sdd_id, skipPersistence]);
 
   // Sauvegarder les messages à chaque changement
   useEffect(() => {
-    if (messages.length > 0) {
+    if (!skipPersistence && messages.length > 0) {
       StorageManager.saveChatMessages(caseData.sdd_id, messages);
     }
-  }, [messages, caseData.sdd_id]);
+  }, [messages, caseData.sdd_id, skipPersistence]);
 
   // Sauvegarder l'état du timer
   useEffect(() => {
-    StorageManager.saveTimerState(caseData.sdd_id, {
-      timeRemaining,
-      isPaused,
-      isTimeUp
-    });
-  }, [timeRemaining, isPaused, isTimeUp, caseData.sdd_id]);
+    if (!skipPersistence) {
+      StorageManager.saveTimerState(caseData.sdd_id, {
+        timeRemaining,
+        isPaused,
+        isTimeUp
+      });
+    }
+  }, [timeRemaining, isPaused, isTimeUp, caseData.sdd_id, skipPersistence]);
 
   // Gestion du timer
   useEffect(() => {
@@ -231,8 +237,10 @@ export const useChat = (caseData: CaseData, initialDurationSeconds = 10 * 60) =>
 
   // Fonction pour nettoyer les données sauvegardées et réinitialiser
   const resetStation = useCallback(() => {
-    StorageManager.removeChatMessages(caseData.sdd_id);
-    StorageManager.removeTimerState(caseData.sdd_id);
+    if (!skipPersistence) {
+      StorageManager.removeChatMessages(caseData.sdd_id);
+      StorageManager.removeTimerState(caseData.sdd_id);
+    }
     
     // Réinitialiser l'état
     setTimeRemaining(initialDurationSeconds);
@@ -242,13 +250,15 @@ export const useChat = (caseData: CaseData, initialDurationSeconds = 10 * 60) =>
     
     // Remettre un tableau de messages vide
     setMessages([]);
-  }, [caseData.sdd_id, initialDurationSeconds]);
+  }, [caseData.sdd_id, initialDurationSeconds, skipPersistence]);
 
   // Fonction pour nettoyer les données sauvegardées
   const clearSavedData = useCallback(() => {
-    StorageManager.removeChatMessages(caseData.sdd_id);
-    StorageManager.removeTimerState(caseData.sdd_id);
-  }, [caseData.sdd_id]);
+    if (!skipPersistence) {
+      StorageManager.removeChatMessages(caseData.sdd_id);
+      StorageManager.removeTimerState(caseData.sdd_id);
+    }
+  }, [caseData.sdd_id, skipPersistence]);
 
   return {
     messages,
