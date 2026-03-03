@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { BarChart3, Pause, Play, X, RotateCcw, Clock, MoreVertical, Info } from "lucide-react";
 import { CaseData } from "@/features/station/types/sdd.types";
+import { StationTypeManager } from "@/features/station/lib/stationTypeManager";
 
 interface ChatHeaderProps {
   caseData: CaseData;
@@ -222,7 +223,7 @@ const ChatHeader = ({
                   {examProgress}
                 </span>
               )}
-              {!examMode && caseData?.consignes_etudiant && (
+              {!examMode && caseData?.consignes_etudiant && !['PS', 'PSS', 'Sèche'].includes(StationTypeManager.getType(caseData)) && (
                 <button
                   onClick={onShowConsignes}
                   className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full px-2 py-0.5 text-xs"
