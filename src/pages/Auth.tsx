@@ -559,6 +559,10 @@ const Auth = () => {
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="+33">🇫🇷 +33</SelectItem>
+                          <SelectItem value="+590">🇬🇵 +590</SelectItem>
+                          <SelectItem value="+596">🇲🇶 +596</SelectItem>
+                          <SelectItem value="+262">🇷🇪 +262</SelectItem>
+                          <SelectItem value="+594">🇬🇫 +594</SelectItem>
                           <SelectItem value="+32">🇧🇪 +32</SelectItem>
                           <SelectItem value="+41">🇨🇭 +41</SelectItem>
                           <SelectItem value="+1">🇺🇸 +1</SelectItem>
