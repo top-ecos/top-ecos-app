@@ -71,7 +71,7 @@ const IntroScreen: React.FC<IntroScreenProps> = ({ isStarting, startError, onSta
           ) : (
             <>
               <ClipboardCheck className="h-5 w-5" />
-              <span>Commencer l'ECOS blanc</span>
+              <span>Lancer un ECOS blanc</span>
             </>
           )}
         </button>
