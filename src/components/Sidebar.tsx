@@ -147,11 +147,24 @@ export const Sidebar: React.FC = () => {
         </div>
       </aside>
 
+      {/* Mobile profile circle icon */}
+      <button
+        onClick={() => handleNavigation('/profile')}
+        className={cn(
+          "md:hidden fixed top-4 right-4 z-40 flex items-center justify-center w-10 h-10 rounded-full border transition-colors",
+          isActive('/profile')
+            ? "bg-[#03BB26]/10 border-[#03BB26] text-[#03BB26]"
+            : "bg-white border-gray-200 text-gray-500"
+        )}
+        aria-label="Profil"
+      >
+        <User size={20} strokeWidth={1.5} />
+      </button>
+
       {/* Mobile bottom tab bar */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200">
-        {/* Changed grid-cols-4 to grid-cols-5 to fit the 5 navigation items */}
         <ul className="grid grid-cols-5 gap-1 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-          {navigation.map((item) => {
+          {navigation.filter(item => item.id !== 'profile').map((item) => {
             const active = isActive(item.href);
             return (
               <li key={item.id} className="flex">

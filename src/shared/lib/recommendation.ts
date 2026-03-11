@@ -31,22 +31,19 @@ class SeededRandom {
 }
 
 /**
- * Generates a stable daily seed based on the date string YYYY-MM-DD.
- * This ensures all users get the same seed for the same day.
+ * Generates a stable daily seed based on the UTC date.
+ * Uses a Murmur3-style 32-bit finalizer to ensure proper avalanche effect,
+ * so each consecutive day produces a very different seed (and thus a different station).
  */
 export const getDailySeed = (date: Date = new Date()): number => {
   const yyyy = date.getUTCFullYear();
-  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const dd = String(date.getUTCDate()).padStart(2, '0');
-  const dateStr = `${yyyy}${mm}${dd}`;
-  
-  let hash = 0;
-  for (let i = 0; i < dateStr.length; i++) {
-    const char = dateStr.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash);
+  const mm = date.getUTCMonth() + 1;
+  const dd = date.getUTCDate();
+  let n = yyyy * 10000 + mm * 100 + dd;
+  n = Math.imul(n ^ (n >>> 16), 0x85ebca6b) | 0;
+  n = Math.imul(n ^ (n >>> 13), 0xc2b2ae35) | 0;
+  n = (n ^ (n >>> 16)) | 0;
+  return Math.abs(n);
 };
 
 /**
