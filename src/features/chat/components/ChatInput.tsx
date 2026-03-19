@@ -14,12 +14,12 @@ interface ChatInputProps {
 }
 
 /**
- * Whisper fallback endpoint — built from the same env var used by useChat.ts
- * Falls back to empty string (= no Whisper fallback) if env var is missing.
+ * Whisper fallback endpoint — built from the same env var used by useChat.ts.
+ * Falls back to undefined (= no Whisper fallback) if env var is missing.
  */
 const WHISPER_ENDPOINT = import.meta.env.VITE_SUPABASE_URL
   ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-to-text`
-  : "";
+  : undefined;
 
 const ChatInput = ({
   inputMessage,
@@ -37,10 +37,14 @@ const ChatInput = ({
   const finalDictationRef = useRef<string>("");
   const unmountedRef = useRef(false);
 
+  // FIX bug 3: Deferred send flag for Whisper.
+  // When user taps Send while Whisper is recording, we stop recording,
+  // wait for the transcript to arrive (which updates inputMessage via onInputChange),
+  // then send on the NEXT render when inputMessage reflects the transcript.
+  const pendingSendRef = useRef(false);
+
   useEffect(() => {
-    return () => {
-      unmountedRef.current = true;
-    };
+    return () => { unmountedRef.current = true; };
   }, []);
 
   // ── Stable onResult callback ──
@@ -71,8 +75,8 @@ const ChatInput = ({
   );
 
   const isDisabled = isLoading || isPaused || isTimeUp;
-  const buttonDisabled = isDisabled || !inputMessage.trim() || isSending;
 
+  // ── Speech recognition hook ──
   const { isSupported, isListening, error, engine, start, stop } = useSpeechRecognition({
     lang: "fr-FR",
     interimResults: true,
@@ -80,8 +84,11 @@ const ChatInput = ({
     maxDurationMs: 60_000,
     silenceMs: 2_000,
     onResult: handleSpeechResult,
-    whisperEndpoint: WHISPER_ENDPOINT || undefined,
+    whisperEndpoint: WHISPER_ENDPOINT,
   });
+
+  // Send button is enabled if there's text OR if we're recording (Whisper will provide text)
+  const sendDisabled = isDisabled || (!inputMessage.trim() && !isListening) || isSending;
 
   // ── Stop listening if station becomes disabled ──
   useEffect(() => {
@@ -104,22 +111,53 @@ const ChatInput = ({
     toast.error(messages[error] || `Erreur de dictée : ${error}`);
   }, [error]);
 
-  // ── Send — no more busy-wait ──
+  // ── FIX bug 3: Deferred send effect ──
+  // After Whisper transcription updates inputMessage, this effect fires and sends.
+  // This guarantees sendMessage() in the parent reads the CORRECT (transcript-updated)
+  // inputMessage value from its closure, because React has re-rendered.
+  useEffect(() => {
+    if (pendingSendRef.current && !isListening && !isTranscribing) {
+      pendingSendRef.current = false;
+      if (inputMessage.trim() && !unmountedRef.current) {
+        onSend();
+      }
+      if (!unmountedRef.current) {
+        setIsSending(false);
+      }
+    }
+  }, [inputMessage, isListening, isTranscribing, onSend]);
+
+  // ── Send handler ──
   const handleSend = useCallback(async () => {
-    if (isSending || !inputMessage.trim() || isDisabled) return;
+    if (isSending || isDisabled) return;
+
+    // ── Special path: user taps Send while Whisper is recording ──
+    // We stop recording and defer the actual send to the useEffect above.
+    // The useEffect will fire on the next render after inputMessage is updated
+    // with the Whisper transcript, ensuring sendMessage() reads the correct value.
+    if (isListening && engine === "whisper") {
+      setIsSending(true);
+      setIsTranscribing(true);
+      await stop();
+      pendingSendRef.current = true;
+      return; // useEffect handles the rest
+    }
+
+    // ── Normal path (not recording, or native engine) ──
+    if (!inputMessage.trim()) return;
 
     setIsSending(true);
     try {
       if (isListening) {
+        // Native engine: stop triggers onend synchronously
         await stop();
-        // Give React one tick to flush state updates from onend
         await new Promise((r) => setTimeout(r, 100));
       }
       if (!unmountedRef.current) onSend();
     } finally {
       if (!unmountedRef.current) setIsSending(false);
     }
-  }, [isSending, inputMessage, isDisabled, isListening, stop, onSend]);
+  }, [isSending, inputMessage, isDisabled, isListening, engine, stop, onSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -145,7 +183,6 @@ const ChatInput = ({
       ? "En pause — reprends pour continuer"
       : (placeholderText || "Procède à l'interrogatoire…");
 
-  // ── Engine-aware mic label ──
   const micTitle = isListening
     ? engine === "whisper"
       ? "Arrêter l'enregistrement"
@@ -154,7 +191,6 @@ const ChatInput = ({
 
   return (
     <div className="px-3 pb-3 pt-2 bg-white">
-      {/* FIX: added `relative` so the ping span positions correctly */}
       <div
         className={`relative flex items-end gap-2 rounded-2xl border px-3 py-2 transition-all duration-200 ${
           isDisabled
@@ -162,7 +198,6 @@ const ChatInput = ({
             : "bg-gray-50 border-gray-200 focus-within:border-gray-300 focus-within:bg-white focus-within:shadow-sm"
         }`}
       >
-        {/* Mic pulse ring when listening */}
         {isListening && (
           <span className="absolute inset-0 rounded-2xl pointer-events-none animate-ping border-2 border-red-300 opacity-30" />
         )}
@@ -213,9 +248,9 @@ const ChatInput = ({
 
           <button
             onClick={handleSend}
-            disabled={buttonDisabled}
+            disabled={sendDisabled}
             className={`h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 flex-none ${
-              buttonDisabled
+              sendDisabled
                 ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                 : "bg-[#03BB26] hover:bg-green-600 text-white shadow-sm hover:shadow-md hover:shadow-green-200 active:scale-95"
             }`}
