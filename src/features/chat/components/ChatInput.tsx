@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Mic, MicOff, Send, Loader2 } from "lucide-react";
+import { Mic, Send, Loader2, X } from "lucide-react";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { toast } from "@/shared/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,11 +14,7 @@ interface ChatInputProps {
   placeholderText?: string;
 }
 
-/**
- * Transcribe audio via the voice-to-text Edge Function.
- * Uses supabase.functions.invoke which handles auth (JWT + apikey) automatically.
- * The Edge Function includes the medical glossary prompt for Whisper.
- */
+/** Transcribe audio via the voice-to-text Edge Function (Supabase client handles auth). */
 async function transcribeAudio(audioBlob: Blob): Promise<string> {
   const ext = audioBlob.type.includes("mp4") ? "mp4" : "webm";
   const formData = new FormData();
@@ -29,12 +25,41 @@ async function transcribeAudio(audioBlob: Blob): Promise<string> {
     body: formData,
   });
 
-  if (error) {
-    throw new Error(error.message || "Transcription failed");
-  }
-
+  if (error) throw new Error(error.message || "Transcription failed");
   return data?.text ?? "";
 }
+
+/** Format seconds as mm:ss */
+function formatTimer(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}
+
+// ── Waveform bars component ──
+const WaveformBars = () => (
+  <>
+    <div style={{ display: "flex", alignItems: "center", gap: "3px", height: "24px" }}>
+      {[1, 2, 3, 4, 1].map((variant, i) => (
+        <div
+          key={i}
+          className="bg-red-400"
+          style={{
+            width: "3px",
+            borderRadius: "2px",
+            animation: `waveBar${variant} 0.8s ease-in-out infinite`,
+          }}
+        />
+      ))}
+    </div>
+    <style>{`
+      @keyframes waveBar1 { 0%,100% { height: 10px; } 50% { height: 22px; } }
+      @keyframes waveBar2 { 0%,100% { height: 18px; } 50% { height: 6px; } }
+      @keyframes waveBar3 { 0%,100% { height: 6px; } 50% { height: 20px; } }
+      @keyframes waveBar4 { 0%,100% { height: 22px; } 50% { height: 8px; } }
+    `}</style>
+  </>
+);
 
 const ChatInput = ({
   inputMessage,
@@ -47,11 +72,16 @@ const ChatInput = ({
 }: ChatInputProps) => {
   const [isSending, setIsSending] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const baseTextRef = useRef<string>("");
   const finalDictationRef = useRef<string>("");
   const unmountedRef = useRef(false);
   const pendingSendRef = useRef(false);
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Flag to ignore the next transcription result (used by Cancel)
+  const ignoreNextResultRef = useRef(false);
 
   useEffect(() => {
     return () => { unmountedRef.current = true; };
@@ -61,6 +91,15 @@ const ChatInput = ({
   const handleSpeechResult = useCallback(
     (text: string, isFinal: boolean) => {
       if (unmountedRef.current) return;
+
+      // If cancel was pressed, ignore everything the hook sends back
+      if (ignoreNextResultRef.current) {
+        if (isFinal) {
+          ignoreNextResultRef.current = false;
+          setIsTranscribing(false);
+        }
+        return;
+      }
 
       if (text === "…" && !isFinal) {
         setIsTranscribing(true);
@@ -85,7 +124,6 @@ const ChatInput = ({
 
   const isDisabled = isLoading || isPaused || isTimeUp;
 
-  // ── Speech recognition hook — transcribeFn uses Supabase client ──
   const { isSupported, isListening, error, engine, start, stop } = useSpeechRecognition({
     lang: "fr-FR",
     maxDurationMs: 60_000,
@@ -95,10 +133,30 @@ const ChatInput = ({
 
   const sendDisabled = isDisabled || (!inputMessage.trim() && !isListening) || isSending;
 
+  // ── Recording timer ──
+  useEffect(() => {
+    if (isListening) {
+      setRecordingSeconds(0);
+      timerIntervalRef.current = setInterval(() => {
+        setRecordingSeconds((prev) => prev + 1);
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, [isListening]);
+
+  // ── Stop listening if station becomes disabled ──
   useEffect(() => {
     if (isDisabled && isListening) stop();
   }, [isDisabled, isListening, stop]);
 
+  // ── Error toasts ──
   useEffect(() => {
     if (!error) return;
     const messages: Record<string, string> = {
@@ -113,7 +171,7 @@ const ChatInput = ({
     toast.error(messages[error] || `Erreur de dictée : ${error}`);
   }, [error]);
 
-  // Deferred send: wait for Whisper transcript before sending
+  // ── Deferred send: wait for Whisper transcript before sending ──
   useEffect(() => {
     if (pendingSendRef.current && !isListening && !isTranscribing) {
       pendingSendRef.current = false;
@@ -126,10 +184,27 @@ const ChatInput = ({
     }
   }, [inputMessage, isListening, isTranscribing, onSend]);
 
+  // ── Start recording ──
+  const handleStartRecording = () => {
+    if (isDisabled) return;
+    ignoreNextResultRef.current = false;
+    baseTextRef.current = inputMessage;
+    finalDictationRef.current = "";
+    start();
+  };
+
+  // ── Cancel recording (discard audio, no transcription) ──
+  const handleCancelRecording = useCallback(() => {
+    ignoreNextResultRef.current = true;
+    stop();
+    // The hook will call stop → transcribeFn → onResult, but the flag
+    // will cause handleSpeechResult to ignore everything.
+  }, [stop]);
+
+  // ── Send while recording (stop → transcribe → send) ──
   const handleSend = useCallback(async () => {
     if (isSending || isDisabled) return;
 
-    // Whisper path: stop recording → defer send until transcript arrives
     if (isListening && engine === "whisper") {
       setIsSending(true);
       setIsTranscribing(true);
@@ -138,7 +213,6 @@ const ChatInput = ({
       return;
     }
 
-    // Normal path
     if (!inputMessage.trim()) return;
 
     setIsSending(true);
@@ -160,29 +234,83 @@ const ChatInput = ({
     }
   };
 
-  const toggleListening = () => {
-    if (isDisabled) return;
-    if (!isListening) {
-      baseTextRef.current = inputMessage;
-      finalDictationRef.current = "";
-      start();
-    } else {
-      stop();
-    }
-  };
-
   const placeholder = isTimeUp
     ? "Temps écoulé"
     : isPaused
       ? "En pause — reprends pour continuer"
       : (placeholderText || "Procède à l'interrogatoire…");
 
-  const micTitle = isListening
-    ? engine === "whisper"
-      ? "Arrêter l'enregistrement"
-      : "Arrêter la dictée"
-    : "Démarrer la dictée";
+  // ════════════════════════════════════════════
+  // STATE 3: Transcription in progress
+  // ════════════════════════════════════════════
+  if (isTranscribing && !ignoreNextResultRef.current) {
+    return (
+      <div className="px-3 pb-3 pt-2 bg-white">
+        <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-amber-300 bg-amber-50 px-4 py-3">
+          <Loader2 className="h-5 w-5 text-amber-500 animate-spin flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-amber-700">Transcription en cours…</p>
+            <p className="text-xs text-amber-500 mt-0.5">Le texte va apparaître dans le chat</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
+  // ════════════════════════════════════════════
+  // STATE 2: Recording in progress
+  // ════════════════════════════════════════════
+  if (isListening) {
+    return (
+      <div className="px-3 pb-3 pt-2 bg-white">
+        <div className="flex items-center gap-3 rounded-2xl border-[1.5px] border-red-300 bg-red-50 px-4 py-3">
+          {/* Waveform animation */}
+          <WaveformBars />
+
+          {/* Text + timer */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-red-600">Enregistrement en cours</p>
+              <span className="text-xs font-mono text-red-400 tabular-nums">
+                {formatTimer(recordingSeconds)}
+              </span>
+            </div>
+            <p className="text-xs text-red-400 mt-0.5">Parle, puis appuie sur Envoyer</p>
+          </div>
+
+          {/* Cancel button */}
+          <button
+            onClick={handleCancelRecording}
+            className="h-9 w-9 rounded-full bg-white border border-red-200 flex items-center justify-center hover:bg-red-50 transition-colors flex-shrink-0"
+            title="Annuler l'enregistrement"
+            aria-label="Annuler l'enregistrement"
+          >
+            <X className="h-4 w-4 text-red-500" />
+          </button>
+
+          {/* Send button */}
+          <button
+            onClick={handleSend}
+            disabled={isSending}
+            className="h-9 w-9 rounded-full bg-[#03BB26] hover:bg-green-600 text-white flex items-center justify-center shadow-sm hover:shadow-md hover:shadow-green-200 active:scale-95 transition-all flex-shrink-0"
+            aria-label="Envoyer"
+          >
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+
+        {isTimeUp && (
+          <p className="mt-2 text-center text-xs text-red-400 font-medium">
+            Temps écoulé · Évalue ta performance ou quitte la station
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════
+  // STATE 1: Idle — keyboard input + mic button
+  // ════════════════════════════════════════════
   return (
     <div className="px-3 pb-3 pt-2 bg-white">
       <div
@@ -192,10 +320,6 @@ const ChatInput = ({
             : "bg-gray-50 border-gray-200 focus-within:border-gray-300 focus-within:bg-white focus-within:shadow-sm"
         }`}
       >
-        {isListening && (
-          <span className="absolute inset-0 rounded-2xl pointer-events-none animate-ping border-2 border-red-300 opacity-30" />
-        )}
-
         <textarea
           ref={textareaRef}
           value={inputMessage}
@@ -218,25 +342,15 @@ const ChatInput = ({
         <div className="flex items-center gap-1.5 pb-1 flex-shrink-0">
           {isSupported && (
             <button
-              onClick={toggleListening}
-              disabled={isDisabled || isTranscribing}
-              className={`h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 ${
-                isTranscribing
-                  ? "bg-amber-500 text-white shadow-md shadow-amber-200 animate-pulse"
-                  : isListening
-                    ? "bg-red-500 text-white shadow-md shadow-red-200 scale-105"
-                    : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700"
-              } ${isDisabled ? "opacity-40 cursor-not-allowed" : ""}`}
-              title={isTranscribing ? "Transcription en cours…" : micTitle}
-              aria-label={isTranscribing ? "Transcription en cours…" : micTitle}
+              onClick={handleStartRecording}
+              disabled={isDisabled}
+              className={`h-9 w-9 rounded-full flex items-center justify-center transition-all duration-200 flex-shrink-0 bg-white text-gray-500 border border-gray-200 hover:bg-gray-100 hover:text-gray-700 ${
+                isDisabled ? "opacity-40 cursor-not-allowed" : ""
+              }`}
+              title="Démarrer la dictée"
+              aria-label="Démarrer la dictée"
             >
-              {isTranscribing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : isListening ? (
-                <MicOff className="h-4 w-4" />
-              ) : (
-                <Mic className="h-4 w-4" />
-              )}
+              <Mic className="h-4 w-4" />
             </button>
           )}
 
