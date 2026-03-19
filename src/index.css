@@ -2,15 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Font - Reddit Sans */
-@font-face {
-  font-family: 'Reddit Sans';
-  src: url('/fonts/RedditSans_Regular.ttf') format('truetype');
-  font-weight: normal;
-  font-style: normal;
-  font-display: swap;
-}
-
 /* Design Tokens - White Light Theme with Strategic Color Palette */
 
 @layer base {
