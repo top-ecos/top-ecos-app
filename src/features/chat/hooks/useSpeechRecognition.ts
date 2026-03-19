@@ -6,13 +6,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 type UseSpeechRecognitionOptions = {
   lang?: string;
-  interimResults?: boolean;
-  continuous?: boolean;
   maxDurationMs?: number;
-  silenceMs?: number;
   onResult?: (text: string, isFinal: boolean) => void;
-  whisperEndpoint?: string;
-  whisperApiKey?: string;
+  /**
+   * Async function that receives an audio Blob and returns the transcript.
+   * When provided, Whisper (via this function) is used for ALL browsers.
+   * When absent, the hook falls back to the native Web Speech API (if available).
+   */
+  transcribeFn?: (audioBlob: Blob) => Promise<string>;
 };
 
 type UseSpeechRecognitionReturn = {
@@ -25,7 +26,7 @@ type UseSpeechRecognitionReturn = {
 };
 
 // ────────────────────────────────────────────────────────────
-// Helpers
+// Native fallback types (only used when transcribeFn is absent)
 // ────────────────────────────────────────────────────────────
 
 interface NativeSpeechRecognition {
@@ -52,7 +53,7 @@ function getNativeCtor(): SpeechRecognitionCtor | null {
 }
 
 // ────────────────────────────────────────────────────────────
-// Whisper engine — MediaRecorder → backend
+// MediaRecorder helpers
 // ────────────────────────────────────────────────────────────
 
 interface WhisperSession {
@@ -98,36 +99,6 @@ function stopWhisperSession(session: WhisperSession): Promise<Blob> {
   });
 }
 
-async function transcribeWithWhisper(
-  audioBlob: Blob,
-  endpoint: string,
-  lang: string,
-  apiKey?: string,
-): Promise<string> {
-  const formData = new FormData();
-  const ext = audioBlob.type.includes("mp4") ? "mp4" : "webm";
-  formData.append("audio", audioBlob, `recording.${ext}`);
-  formData.append("language", lang.split("-")[0]);
-
-  const headers: Record<string, string> = {};
-  if (apiKey) {
-    headers["apikey"] = apiKey;
-  }
-
-  const res = await fetch(endpoint, {
-    method: "POST",
-    headers,
-    body: formData,
-  });
-
-  if (!res.ok) {
-    throw new Error(`Whisper API error: ${res.status}`);
-  }
-
-  const data = await res.json();
-  return data.text ?? "";
-}
-
 // ────────────────────────────────────────────────────────────
 // Main hook
 // ────────────────────────────────────────────────────────────
@@ -137,33 +108,25 @@ export function useSpeechRecognition(
 ): UseSpeechRecognitionReturn {
   const {
     lang = "fr-FR",
-    interimResults = true,
-    continuous = false,
-    maxDurationMs = 45_000,
-    silenceMs = 2_000,
+    maxDurationMs = 60_000,
     onResult,
-    whisperEndpoint,
-    whisperApiKey,
+    transcribeFn,
   } = options;
 
   const onResultRef = useRef(onResult);
-  useEffect(() => {
-    onResultRef.current = onResult;
-  }, [onResult]);
+  useEffect(() => { onResultRef.current = onResult; }, [onResult]);
 
-  // ── Engine selection ──
+  const transcribeFnRef = useRef(transcribeFn);
+  useEffect(() => { transcribeFnRef.current = transcribeFn; }, [transcribeFn]);
+
+  // ── Engine selection: Whisper if transcribeFn provided, native as fallback ──
   const nativeCtorRef = useRef<SpeechRecognitionCtor | null>(getNativeCtor());
-  const hasNativeCtor = !!nativeCtorRef.current;
-  const hasWhisper = !!whisperEndpoint && typeof navigator?.mediaDevices?.getUserMedia === "function";
+  const hasWhisper = !!transcribeFn && typeof navigator?.mediaDevices?.getUserMedia === "function";
+  const hasNative = !!nativeCtorRef.current;
 
-  // ────────────────────────────────────────────────────────
-  // STRATEGY: Always prefer Whisper when available.
-  // Whisper gives access to the medical glossary (88 terms)
-  // which is critical for accurate transcription of ECOS terms.
-  // Native API is only used as a last resort (no mic API = no Whisper).
-  // ────────────────────────────────────────────────────────
+  // Whisper is ALWAYS preferred when available (glossary médical)
   const useWhisperEngine = hasWhisper;
-  const useNative = hasNativeCtor && !hasWhisper;
+  const useNative = hasNative && !hasWhisper;
 
   const [isSupported] = useState<boolean>(useWhisperEngine || useNative);
   const [isListening, setIsListening] = useState(false);
@@ -172,7 +135,7 @@ export function useSpeechRecognition(
 
   const startingRef = useRef(false);
 
-  // ── Refs ──
+  // Refs
   const recognitionRef = useRef<NativeSpeechRecognition | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const silenceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -205,20 +168,22 @@ export function useSpeechRecognition(
     clearAllTimers();
     startingRef.current = false;
 
+    // Native cleanup
     const rec = recognitionRef.current;
     if (rec) {
       recognitionRef.current = null;
       disposeNativeInstance(rec);
     }
 
+    // Whisper cleanup + transcription
     const session = whisperSessionRef.current;
     if (session) {
       whisperSessionRef.current = null;
       try {
         const audioBlob = await stopWhisperSession(session);
-        if (audioBlob.size > 0 && whisperEndpoint) {
-          onResultRef.current?.("…", false);
-          const transcript = await transcribeWithWhisper(audioBlob, whisperEndpoint, lang, whisperApiKey);
+        if (audioBlob.size > 0 && transcribeFnRef.current) {
+          onResultRef.current?.("…", false); // processing signal
+          const transcript = await transcribeFnRef.current(audioBlob);
           if (transcript.trim()) {
             onResultRef.current?.(transcript.trim(), true);
           }
@@ -230,16 +195,16 @@ export function useSpeechRecognition(
 
     setIsListening(false);
     setEngine(null);
-  }, [clearAllTimers, disposeNativeInstance, whisperEndpoint, whisperApiKey, lang]);
+  }, [clearAllTimers, disposeNativeInstance]);
 
   // ── Native silence timer (fallback only) ──
 
   const armNativeSilence = useCallback(() => {
     if (silenceRef.current) clearTimeout(silenceRef.current);
-    silenceRef.current = setTimeout(() => { stop(); }, Math.max(500, silenceMs));
-  }, [silenceMs, stop]);
+    silenceRef.current = setTimeout(() => { stop(); }, 2_000);
+  }, [stop]);
 
-  // ── START Native (fallback only — used when Whisper is unavailable) ──
+  // ── START Native (fallback — only when transcribeFn is absent) ──
 
   const startNative = useCallback(() => {
     const Ctor = nativeCtorRef.current;
@@ -252,8 +217,8 @@ export function useSpeechRecognition(
 
     const rec = new Ctor();
     rec.lang = lang;
-    rec.interimResults = interimResults;
-    rec.continuous = continuous;
+    rec.interimResults = true;
+    rec.continuous = true;
 
     rec.onstart = () => {
       setIsListening(true);
@@ -300,17 +265,11 @@ export function useSpeechRecognition(
     rec.start();
 
     timeoutRef.current = setTimeout(() => { stop(); }, Math.max(1_000, maxDurationMs));
-  }, [lang, interimResults, continuous, maxDurationMs, armNativeSilence, clearAllTimers, disposeNativeInstance, stop]);
+  }, [lang, maxDurationMs, armNativeSilence, clearAllTimers, disposeNativeInstance, stop]);
 
-  // ── START Whisper (primary engine) ──
+  // ── START Whisper (primary — MediaRecorder → transcribeFn) ──
 
   const startWhisper = useCallback(async () => {
-    if (!whisperEndpoint) {
-      setError("no-whisper-endpoint");
-      startingRef.current = false;
-      return;
-    }
-
     try {
       const session = await startWhisperSession();
       whisperSessionRef.current = session;
@@ -323,14 +282,10 @@ export function useSpeechRecognition(
       whisperTimeoutRef.current = setTimeout(() => { stop(); }, Math.max(1_000, maxDurationMs));
     } catch (e: any) {
       startingRef.current = false;
-      if (e?.name === "NotAllowedError") {
-        setError("not-allowed");
-      } else {
-        setError("start-failed");
-      }
+      setError(e?.name === "NotAllowedError" ? "not-allowed" : "start-failed");
       setIsListening(false);
     }
-  }, [whisperEndpoint, maxDurationMs, stop]);
+  }, [maxDurationMs, stop]);
 
   // ── START (unified) ──
 
