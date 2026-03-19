@@ -72,7 +72,7 @@ const pricingTiers: PricingPlan[] = [
             'Évaluation IA complète',
             'Rappels de cours personnalisés',
             'Classement hebdomadaire dynamique',
-            'Accès prioritaire au support'
+            'Accès prioritaire au support',
             'Accès anticipé aux nouvelles fonctionnalités'
         ],
         ctaText: 'Je m\'entraîne non-stop !',
