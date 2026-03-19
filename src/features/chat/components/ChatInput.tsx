@@ -14,12 +14,15 @@ interface ChatInputProps {
 }
 
 /**
- * Whisper fallback endpoint — built from the same env var used by useChat.ts.
- * Falls back to undefined (= no Whisper fallback) if env var is missing.
+ * Whisper config — built from the same env vars used by useChat.ts.
+ * Falls back to undefined (= no Whisper fallback) if env vars are missing.
  */
 const WHISPER_ENDPOINT = import.meta.env.VITE_SUPABASE_URL
   ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-to-text`
   : undefined;
+
+/** FIX: The Supabase gateway requires this apikey header, otherwise → 401 */
+const WHISPER_API_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || undefined;
 
 const ChatInput = ({
   inputMessage,
@@ -37,10 +40,7 @@ const ChatInput = ({
   const finalDictationRef = useRef<string>("");
   const unmountedRef = useRef(false);
 
-  // FIX bug 3: Deferred send flag for Whisper.
-  // When user taps Send while Whisper is recording, we stop recording,
-  // wait for the transcript to arrive (which updates inputMessage via onInputChange),
-  // then send on the NEXT render when inputMessage reflects the transcript.
+  // Deferred send flag for Whisper (see useEffect below)
   const pendingSendRef = useRef(false);
 
   useEffect(() => {
@@ -85,9 +85,10 @@ const ChatInput = ({
     silenceMs: 2_000,
     onResult: handleSpeechResult,
     whisperEndpoint: WHISPER_ENDPOINT,
+    whisperApiKey: WHISPER_API_KEY,
   });
 
-  // Send button is enabled if there's text OR if we're recording (Whisper will provide text)
+  // Send button: enabled if there's text OR if we're recording (Whisper will provide text)
   const sendDisabled = isDisabled || (!inputMessage.trim() && !isListening) || isSending;
 
   // ── Stop listening if station becomes disabled ──
@@ -111,10 +112,9 @@ const ChatInput = ({
     toast.error(messages[error] || `Erreur de dictée : ${error}`);
   }, [error]);
 
-  // ── FIX bug 3: Deferred send effect ──
+  // ── Deferred send effect ──
   // After Whisper transcription updates inputMessage, this effect fires and sends.
-  // This guarantees sendMessage() in the parent reads the CORRECT (transcript-updated)
-  // inputMessage value from its closure, because React has re-rendered.
+  // This guarantees sendMessage() in useChat reads the correct inputMessage.
   useEffect(() => {
     if (pendingSendRef.current && !isListening && !isTranscribing) {
       pendingSendRef.current = false;
@@ -131,10 +131,7 @@ const ChatInput = ({
   const handleSend = useCallback(async () => {
     if (isSending || isDisabled) return;
 
-    // ── Special path: user taps Send while Whisper is recording ──
-    // We stop recording and defer the actual send to the useEffect above.
-    // The useEffect will fire on the next render after inputMessage is updated
-    // with the Whisper transcript, ensuring sendMessage() reads the correct value.
+    // Whisper path: stop recording → defer send until transcript arrives
     if (isListening && engine === "whisper") {
       setIsSending(true);
       setIsTranscribing(true);
@@ -143,13 +140,12 @@ const ChatInput = ({
       return; // useEffect handles the rest
     }
 
-    // ── Normal path (not recording, or native engine) ──
+    // Normal path (not recording, or native engine)
     if (!inputMessage.trim()) return;
 
     setIsSending(true);
     try {
       if (isListening) {
-        // Native engine: stop triggers onend synchronously
         await stop();
         await new Promise((r) => setTimeout(r, 100));
       }
