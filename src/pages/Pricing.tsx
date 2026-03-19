@@ -189,7 +189,7 @@ const Pricing = () => {
                 <div className="pt-8 pb-20 px-4 max-w-6xl mx-auto">
                     <div className="flex flex-col text-center w-full mb-8">
                         <h1 className="font-bold text-2xl lg:text-3xl tracking-tight text-text max-w-2xl mx-auto">
-                            Prends de l'avance : passe à top ECOS Premium. 
+                            Prends de l'avance, passe à top ECOS Premium !
                         </h1>
                     </div>
 
