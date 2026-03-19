@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Mic, MicOff, Send, Loader2 } from "lucide-react";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { toast } from "@/shared/components/ui/sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatInputProps {
   inputMessage: string;
@@ -14,15 +15,26 @@ interface ChatInputProps {
 }
 
 /**
- * Whisper config — built from the same env vars used by useChat.ts.
- * Falls back to undefined (= no Whisper fallback) if env vars are missing.
+ * Transcribe audio via the voice-to-text Edge Function.
+ * Uses supabase.functions.invoke which handles auth (JWT + apikey) automatically.
+ * The Edge Function includes the medical glossary prompt for Whisper.
  */
-const WHISPER_ENDPOINT = import.meta.env.VITE_SUPABASE_URL
-  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/voice-to-text`
-  : undefined;
+async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  const ext = audioBlob.type.includes("mp4") ? "mp4" : "webm";
+  const formData = new FormData();
+  formData.append("audio", audioBlob, `recording.${ext}`);
+  formData.append("language", "fr");
 
-/** FIX: The Supabase gateway requires this apikey header, otherwise → 401 */
-const WHISPER_API_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || undefined;
+  const { data, error } = await supabase.functions.invoke("voice-to-text", {
+    body: formData,
+  });
+
+  if (error) {
+    throw new Error(error.message || "Transcription failed");
+  }
+
+  return data?.text ?? "";
+}
 
 const ChatInput = ({
   inputMessage,
@@ -39,8 +51,6 @@ const ChatInput = ({
   const baseTextRef = useRef<string>("");
   const finalDictationRef = useRef<string>("");
   const unmountedRef = useRef(false);
-
-  // Deferred send flag for Whisper (see useEffect below)
   const pendingSendRef = useRef(false);
 
   useEffect(() => {
@@ -52,7 +62,6 @@ const ChatInput = ({
     (text: string, isFinal: boolean) => {
       if (unmountedRef.current) return;
 
-      // "…" is the Whisper "processing" signal
       if (text === "…" && !isFinal) {
         setIsTranscribing(true);
         return;
@@ -76,27 +85,20 @@ const ChatInput = ({
 
   const isDisabled = isLoading || isPaused || isTimeUp;
 
-  // ── Speech recognition hook ──
+  // ── Speech recognition hook — transcribeFn uses Supabase client ──
   const { isSupported, isListening, error, engine, start, stop } = useSpeechRecognition({
     lang: "fr-FR",
-    interimResults: true,
-    continuous: true,
     maxDurationMs: 60_000,
-    silenceMs: 2_000,
     onResult: handleSpeechResult,
-    whisperEndpoint: WHISPER_ENDPOINT,
-    whisperApiKey: WHISPER_API_KEY,
+    transcribeFn: transcribeAudio,
   });
 
-  // Send button: enabled if there's text OR if we're recording (Whisper will provide text)
   const sendDisabled = isDisabled || (!inputMessage.trim() && !isListening) || isSending;
 
-  // ── Stop listening if station becomes disabled ──
   useEffect(() => {
     if (isDisabled && isListening) stop();
   }, [isDisabled, isListening, stop]);
 
-  // ── Error toasts ──
   useEffect(() => {
     if (!error) return;
     const messages: Record<string, string> = {
@@ -105,16 +107,13 @@ const ChatInput = ({
       "no-speech": "Aucun son détecté. Réessaie.",
       "network": "Problème réseau détecté.",
       "start-failed": "Impossible de démarrer la dictée.",
-      "no-whisper-endpoint": "Service de transcription non configuré.",
       "whisper-failed": "Erreur de transcription. Réessaie.",
       "unknown": "Erreur de dictée inconnue.",
     };
     toast.error(messages[error] || `Erreur de dictée : ${error}`);
   }, [error]);
 
-  // ── Deferred send effect ──
-  // After Whisper transcription updates inputMessage, this effect fires and sends.
-  // This guarantees sendMessage() in useChat reads the correct inputMessage.
+  // Deferred send: wait for Whisper transcript before sending
   useEffect(() => {
     if (pendingSendRef.current && !isListening && !isTranscribing) {
       pendingSendRef.current = false;
@@ -127,7 +126,6 @@ const ChatInput = ({
     }
   }, [inputMessage, isListening, isTranscribing, onSend]);
 
-  // ── Send handler ──
   const handleSend = useCallback(async () => {
     if (isSending || isDisabled) return;
 
@@ -137,10 +135,10 @@ const ChatInput = ({
       setIsTranscribing(true);
       await stop();
       pendingSendRef.current = true;
-      return; // useEffect handles the rest
+      return;
     }
 
-    // Normal path (not recording, or native engine)
+    // Normal path
     if (!inputMessage.trim()) return;
 
     setIsSending(true);
