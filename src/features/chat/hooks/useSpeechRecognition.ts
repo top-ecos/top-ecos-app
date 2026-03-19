@@ -11,27 +11,21 @@ type UseSpeechRecognitionOptions = {
   maxDurationMs?: number;
   silenceMs?: number;
   onResult?: (text: string, isFinal: boolean) => void;
-  /**
-   * URL of your backend endpoint that proxies to OpenAI Whisper.
-   * Required for the Whisper fallback (iOS / unsupported browsers).
-   * The endpoint should accept a POST with FormData containing an "audio" Blob
-   * and return JSON: { text: string }
-   */
   whisperEndpoint?: string;
+  whisperApiKey?: string;
 };
 
 type UseSpeechRecognitionReturn = {
   isSupported: boolean;
   isListening: boolean;
   error: string | null;
-  /** "native" when using Web Speech API, "whisper" when using fallback */
   engine: "native" | "whisper" | null;
   start: () => void;
   stop: () => void;
 };
 
 // ────────────────────────────────────────────────────────────
-// Helpers — detect capabilities once
+// Helpers
 // ────────────────────────────────────────────────────────────
 
 interface NativeSpeechRecognition {
@@ -57,26 +51,8 @@ function getNativeCtor(): SpeechRecognitionCtor | null {
   return w.SpeechRecognition || w.webkitSpeechRecognition || null;
 }
 
-/** Detect iOS (iPhone, iPad, iPod) */
-function isIOS(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  // Standard iOS detection
-  if (/iPhone|iPad|iPod/.test(ua)) return true;
-  // iPad on iOS 13+ reports as "Macintosh" but has touch
-  if (/Macintosh/.test(ua) && typeof navigator.maxTouchPoints === "number" && navigator.maxTouchPoints > 1) return true;
-  return false;
-}
-
-/** Safari-specific detection (macOS only — NOT iOS) */
-function isSafariDesktop(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  return /Safari/.test(ua) && !/Chrome|Chromium|CriOS|Edg/.test(ua) && !isIOS();
-}
-
 // ────────────────────────────────────────────────────────────
-// Whisper fallback engine — uses MediaRecorder → backend
+// Whisper engine — MediaRecorder → backend
 // ────────────────────────────────────────────────────────────
 
 interface WhisperSession {
@@ -88,7 +64,6 @@ interface WhisperSession {
 async function startWhisperSession(): Promise<WhisperSession> {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-  // Prefer webm/opus (Chrome, Firefox), fall back to mp4/aac (Safari)
   const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
     ? "audio/webm;codecs=opus"
     : MediaRecorder.isTypeSupported("audio/mp4")
@@ -102,8 +77,7 @@ async function startWhisperSession(): Promise<WhisperSession> {
     if (e.data.size > 0) chunks.push(e.data);
   };
 
-  mediaRecorder.start(250); // collect data in 250ms chunks for responsiveness
-
+  mediaRecorder.start(250);
   return { mediaRecorder, stream, chunks };
 }
 
@@ -128,14 +102,21 @@ async function transcribeWithWhisper(
   audioBlob: Blob,
   endpoint: string,
   lang: string,
+  apiKey?: string,
 ): Promise<string> {
   const formData = new FormData();
   const ext = audioBlob.type.includes("mp4") ? "mp4" : "webm";
   formData.append("audio", audioBlob, `recording.${ext}`);
-  formData.append("language", lang.split("-")[0]); // "fr-FR" → "fr"
+  formData.append("language", lang.split("-")[0]);
+
+  const headers: Record<string, string> = {};
+  if (apiKey) {
+    headers["apikey"] = apiKey;
+  }
 
   const res = await fetch(endpoint, {
     method: "POST",
+    headers,
     body: formData,
   });
 
@@ -162,50 +143,42 @@ export function useSpeechRecognition(
     silenceMs = 2_000,
     onResult,
     whisperEndpoint,
+    whisperApiKey,
   } = options;
 
-  // ── Stable ref for onResult to avoid stale closures ──
   const onResultRef = useRef(onResult);
   useEffect(() => {
     onResultRef.current = onResult;
   }, [onResult]);
 
-  // ── Detect engine preference ──
+  // ── Engine selection ──
   const nativeCtorRef = useRef<SpeechRecognitionCtor | null>(getNativeCtor());
   const hasNativeCtor = !!nativeCtorRef.current;
   const hasWhisper = !!whisperEndpoint && typeof navigator?.mediaDevices?.getUserMedia === "function";
 
   // ────────────────────────────────────────────────────────
-  // KEY FIX: On iOS, the native webkitSpeechRecognition exists (since iOS 14.5)
-  // but it's flaky and — critically — doesn't support the medical glossary.
-  // When Whisper is available, we ALWAYS prefer it on iOS to get the glossary.
-  // On desktop Chrome, native is fast and reliable so we keep it.
-  // On Safari macOS, native works with our fixes so we keep it.
+  // STRATEGY: Always prefer Whisper when available.
+  // Whisper gives access to the medical glossary (88 terms)
+  // which is critical for accurate transcription of ECOS terms.
+  // Native API is only used as a last resort (no mic API = no Whisper).
   // ────────────────────────────────────────────────────────
-  const iosDevice = isIOS();
-  const preferWhisper = iosDevice && hasWhisper;
+  const useWhisperEngine = hasWhisper;
+  const useNative = hasNativeCtor && !hasWhisper;
 
-  const useNative = hasNativeCtor && !preferWhisper;
-  const useWhisper = hasWhisper && (!hasNativeCtor || preferWhisper);
-
-  const [isSupported] = useState<boolean>(useNative || useWhisper);
+  const [isSupported] = useState<boolean>(useWhisperEngine || useNative);
   const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [engine, setEngine] = useState<"native" | "whisper" | null>(null);
 
-  // Prevent double-starts
   const startingRef = useRef(false);
 
-  // ── Refs for native engine ──
+  // ── Refs ──
   const recognitionRef = useRef<NativeSpeechRecognition | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const silenceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ── Refs for Whisper engine ──
   const whisperSessionRef = useRef<WhisperSession | null>(null);
   const whisperTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Timer helpers ──
   const clearAllTimers = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     if (silenceRef.current) clearTimeout(silenceRef.current);
@@ -215,10 +188,6 @@ export function useSpeechRecognition(
     whisperTimeoutRef.current = null;
   }, []);
 
-  // ────────────────────────────────────────────
-  // Safely dispose of a native recognition instance
-  // Detaches ALL handlers BEFORE stopping to prevent ghost events
-  // ────────────────────────────────────────────
   const disposeNativeInstance = useCallback((rec: NativeSpeechRecognition | null) => {
     if (!rec) return;
     rec.onstart = null;
@@ -230,31 +199,26 @@ export function useSpeechRecognition(
     try { rec.abort(); } catch { /* noop */ }
   }, []);
 
-  // ────────────────────────────────────────────
-  // STOP (unified)
-  // ────────────────────────────────────────────
+  // ── STOP ──
 
   const stop = useCallback(async () => {
     clearAllTimers();
     startingRef.current = false;
 
-    // ── Native cleanup ──
     const rec = recognitionRef.current;
     if (rec) {
       recognitionRef.current = null;
       disposeNativeInstance(rec);
     }
 
-    // ── Whisper cleanup + transcription ──
     const session = whisperSessionRef.current;
     if (session) {
       whisperSessionRef.current = null;
       try {
         const audioBlob = await stopWhisperSession(session);
         if (audioBlob.size > 0 && whisperEndpoint) {
-          // Send a "processing…" interim signal
           onResultRef.current?.("…", false);
-          const transcript = await transcribeWithWhisper(audioBlob, whisperEndpoint, lang);
+          const transcript = await transcribeWithWhisper(audioBlob, whisperEndpoint, lang, whisperApiKey);
           if (transcript.trim()) {
             onResultRef.current?.(transcript.trim(), true);
           }
@@ -266,33 +230,21 @@ export function useSpeechRecognition(
 
     setIsListening(false);
     setEngine(null);
-  }, [clearAllTimers, disposeNativeInstance, whisperEndpoint, lang]);
+  }, [clearAllTimers, disposeNativeInstance, whisperEndpoint, whisperApiKey, lang]);
 
-  // ────────────────────────────────────────────
-  // Silence arm (native only)
-  // ────────────────────────────────────────────
+  // ── Native silence timer (fallback only) ──
 
   const armNativeSilence = useCallback(() => {
     if (silenceRef.current) clearTimeout(silenceRef.current);
-    // On Safari macOS, give more time because of the ~2-3s init delay
-    const delay = isSafariDesktop()
-      ? Math.max(3_500, silenceMs)
-      : Math.max(500, silenceMs);
-    silenceRef.current = setTimeout(() => {
-      stop();
-    }, delay);
+    silenceRef.current = setTimeout(() => { stop(); }, Math.max(500, silenceMs));
   }, [silenceMs, stop]);
 
-  // ────────────────────────────────────────────
-  // START — Native Web Speech API
-  // (used on Chrome desktop + Safari macOS)
-  // ────────────────────────────────────────────
+  // ── START Native (fallback only — used when Whisper is unavailable) ──
 
   const startNative = useCallback(() => {
     const Ctor = nativeCtorRef.current;
     if (!Ctor) return;
 
-    // Clean up any lingering instance (detach handlers first to prevent ghost events)
     if (recognitionRef.current) {
       disposeNativeInstance(recognitionRef.current);
       recognitionRef.current = null;
@@ -301,8 +253,7 @@ export function useSpeechRecognition(
     const rec = new Ctor();
     rec.lang = lang;
     rec.interimResults = interimResults;
-    // On Safari macOS, continuous mode is broken → force single-shot
-    rec.continuous = isSafariDesktop() ? false : continuous;
+    rec.continuous = continuous;
 
     rec.onstart = () => {
       setIsListening(true);
@@ -324,24 +275,17 @@ export function useSpeechRecognition(
         }
         if (interim) onResultRef.current?.(interim, false);
         if (final) onResultRef.current?.(final, true);
-      } catch {
-        // swallow parsing errors
-      }
+      } catch { /* swallow */ }
     };
 
     rec.onerror = (event: any) => {
       const code = event?.error ?? "unknown";
-
-      // Safari macOS fires "no-speech" during init delay and "aborted" on cleanup
-      if (isSafariDesktop() && (code === "no-speech" || code === "aborted")) {
-        return;
-      }
-
+      if (code === "aborted") return;
       setError(code);
       stop();
     };
 
-    rec.onspeechend = () => { /* no-op — silence timer handles stopping */ };
+    rec.onspeechend = () => {};
     rec.onaudiostart = () => { armNativeSilence(); };
 
     rec.onend = () => {
@@ -355,16 +299,10 @@ export function useSpeechRecognition(
     recognitionRef.current = rec;
     rec.start();
 
-    // Safety max-duration timeout
-    timeoutRef.current = setTimeout(() => {
-      stop();
-    }, Math.max(1_000, maxDurationMs));
+    timeoutRef.current = setTimeout(() => { stop(); }, Math.max(1_000, maxDurationMs));
   }, [lang, interimResults, continuous, maxDurationMs, armNativeSilence, clearAllTimers, disposeNativeInstance, stop]);
 
-  // ────────────────────────────────────────────
-  // START — Whisper fallback (MediaRecorder)
-  // (used on iOS + any browser without native support)
-  // ────────────────────────────────────────────
+  // ── START Whisper (primary engine) ──
 
   const startWhisper = useCallback(async () => {
     if (!whisperEndpoint) {
@@ -382,10 +320,7 @@ export function useSpeechRecognition(
       setEngine("whisper");
       startingRef.current = false;
 
-      // Safety max-duration timeout
-      whisperTimeoutRef.current = setTimeout(() => {
-        stop();
-      }, Math.max(1_000, maxDurationMs));
+      whisperTimeoutRef.current = setTimeout(() => { stop(); }, Math.max(1_000, maxDurationMs));
     } catch (e: any) {
       startingRef.current = false;
       if (e?.name === "NotAllowedError") {
@@ -397,22 +332,20 @@ export function useSpeechRecognition(
     }
   }, [whisperEndpoint, maxDurationMs, stop]);
 
-  // ────────────────────────────────────────────
-  // START (unified entry point)
-  // ────────────────────────────────────────────
+  // ── START (unified) ──
 
   const start = useCallback(() => {
     if (!isSupported || startingRef.current || isListening) return;
     startingRef.current = true;
 
-    if (useNative) {
-      startNative();
-    } else if (useWhisper) {
+    if (useWhisperEngine) {
       startWhisper();
+    } else if (useNative) {
+      startNative();
     } else {
       startingRef.current = false;
     }
-  }, [isSupported, isListening, useNative, useWhisper, startNative, startWhisper]);
+  }, [isSupported, isListening, useWhisperEngine, useNative, startWhisper, startNative]);
 
   // ── Cleanup on unmount ──
   useEffect(() => {
