@@ -316,7 +316,7 @@ const Dashboard = () => {
                     Bonjour {displayName || profile?.first_name || 'Étudiant'} !
                   </h1>
                   <p className="text-lg sm:text-xl md:text-2xl text-text font-bold mb-6 md:mb-10">
-                    C’est parti pour une session d’entraînement ?
+                    Tu es bien sur la branche Dev mon salaud
                   </p>
 
                   {/* PHOENIX: Display token status only for free users */}
