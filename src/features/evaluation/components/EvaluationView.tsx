@@ -14,6 +14,9 @@ interface EvaluationViewProps {
   backLabel?: string;
   showBackButton?: boolean;
   hideResetStation?: boolean;
+  /** When viewing a specific historical result, pass its mock_results.id so
+   *  reclassification updates target the correct row — not the latest one. */
+  mockResultId?: string;
 }
 
 const EvaluationView = ({ 
@@ -26,6 +29,7 @@ const EvaluationView = ({
   backLabel = "Retour",
   showBackButton = false,
   hideResetStation = false,
+  mockResultId,
 }: EvaluationViewProps) => {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -127,6 +131,7 @@ const EvaluationView = ({
           stationId={String(caseData.sdd_id)}
           ednItemNumber={caseData.item_edn}
           ednItemName={caseData.item_edn_name}
+          mockResultId={mockResultId}
         />
       </div>
     </div>
