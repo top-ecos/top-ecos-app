@@ -243,6 +243,7 @@ const HistoryEvaluationPage = () => {
       onShowReplay={() => setShowReplay(true)}
       onResetStation={handleRestartStation}
       onBackToHome={handleBack}
+      mockResultId={resultId}
     />
   );
 };
