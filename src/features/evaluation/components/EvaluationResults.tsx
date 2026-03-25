@@ -6,6 +6,8 @@ import RecommendationsSection from "./RecommendationsSection";
 import { useEvaluationScores } from "../hooks/useEvaluationScores";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/shared/contexts/AuthContext";
+import { useProfile } from "@/shared/hooks/useProfile";
+import { isUserPremium } from "@/shared/lib/premium";
 import type { ActionStatus } from "../types/evaluation.types";
 
 /* ──────────────────────────── Types ──────────────────────────── */
@@ -68,6 +70,8 @@ const EvaluationResults = ({
   mockResultId: mockResultIdProp,
 }: EvaluationResultsProps) => {
   const { user } = useAuth();
+  const { profile } = useProfile();
+  const premium = isUserPremium(profile);
 
   /* ── Mutable copy of the evaluation result ── */
   const [mutableResult, setMutableResult] = useState<EvaluationResult>(() => ({
@@ -325,7 +329,7 @@ const EvaluationResults = ({
         actions_reussies={mutableResult.actions_reussies}
         actions_partielles={mutableResult.actions_partielles || []}
         actions_manquees={mutableResult.actions_manquees}
-        onReclassify={handleReclassify}
+        onReclassify={premium ? handleReclassify : undefined}
       />
 
       {/* ═══════════ Communication détaillée ═══════════ */}
