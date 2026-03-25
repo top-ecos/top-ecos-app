@@ -12,12 +12,15 @@ export interface AIRecommendation {
   }>;
 }
 
+export type ActionStatus = 'reussie' | 'partielle' | 'manquee';
+
 export interface EvaluationResult {
   score_clinique: number;
   score_communication: number;
   note_finale: number;
   actions_reussies: (string | { action: string; extrait: string })[];
   actions_manquees: string[];
+  actions_partielles?: (string | { action: string; extrait?: string })[];
   communication_details: Record<string, number>;
   feedback: string;
 
@@ -27,4 +30,3 @@ export interface EvaluationResult {
   transcript_json?: TranscriptMessage[];
   ai_recommendations?: AIRecommendation | null;
 }
-
