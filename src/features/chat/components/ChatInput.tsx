@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Mic, Send, Loader2, X } from "lucide-react";
+import { Mic, Send, Loader2, X, Square } from "lucide-react";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { toast } from "@/shared/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -77,7 +77,6 @@ const ChatInput = ({
   const baseTextRef = useRef<string>("");
   const finalDictationRef = useRef<string>("");
   const unmountedRef = useRef(false);
-  const pendingSendRef = useRef(false);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Flag to ignore the next transcription result (used by Cancel)
@@ -131,7 +130,7 @@ const ChatInput = ({
     transcribeFn: transcribeAudio,
   });
 
-  const sendDisabled = isDisabled || (!inputMessage.trim() && !isListening) || isSending;
+  const sendDisabled = isDisabled || !inputMessage.trim() || isSending;
 
   // ── Recording timer ──
   useEffect(() => {
@@ -171,18 +170,18 @@ const ChatInput = ({
     toast.error(messages[error] || `Erreur de dictée : ${error}`);
   }, [error]);
 
-  // ── Deferred send: wait for Whisper transcript before sending ──
+  // ── Auto-focus textarea after transcription lands ──
   useEffect(() => {
-    if (pendingSendRef.current && !isListening && !isTranscribing) {
-      pendingSendRef.current = false;
-      if (inputMessage.trim() && !unmountedRef.current) {
-        onSend();
-      }
-      if (!unmountedRef.current) {
-        setIsSending(false);
-      }
+    if (!isListening && !isTranscribing && inputMessage.trim() && textareaRef.current) {
+      textareaRef.current.focus();
+      // Place cursor at end
+      const len = inputMessage.length;
+      textareaRef.current.setSelectionRange(len, len);
+      // Auto-resize textarea to fit content
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 120) + "px";
     }
-  }, [inputMessage, isListening, isTranscribing, onSend]);
+  }, [isListening, isTranscribing, inputMessage]);
 
   // ── Start recording ──
   const handleStartRecording = () => {
@@ -193,39 +192,31 @@ const ChatInput = ({
     start();
   };
 
+  // ── Stop recording (transcribe → text appears in textarea for review) ──
+  const handleStopRecording = useCallback(() => {
+    stop();
+    // After stop, the hook transcribes and calls handleSpeechResult,
+    // which puts the text into the textarea via onInputChange.
+    // The user can then review, edit, and send manually.
+  }, [stop]);
+
   // ── Cancel recording (discard audio, no transcription) ──
   const handleCancelRecording = useCallback(() => {
     ignoreNextResultRef.current = true;
     stop();
-    // The hook will call stop → transcribeFn → onResult, but the flag
-    // will cause handleSpeechResult to ignore everything.
   }, [stop]);
 
-  // ── Send while recording (stop → transcribe → send) ──
+  // ── Send message (keyboard or button) ──
   const handleSend = useCallback(async () => {
-    if (isSending || isDisabled) return;
-
-    if (isListening && engine === "whisper") {
-      setIsSending(true);
-      setIsTranscribing(true);
-      await stop();
-      pendingSendRef.current = true;
-      return;
-    }
-
-    if (!inputMessage.trim()) return;
+    if (isSending || isDisabled || !inputMessage.trim()) return;
 
     setIsSending(true);
     try {
-      if (isListening) {
-        await stop();
-        await new Promise((r) => setTimeout(r, 100));
-      }
       if (!unmountedRef.current) onSend();
     } finally {
       if (!unmountedRef.current) setIsSending(false);
     }
-  }, [isSending, inputMessage, isDisabled, isListening, engine, stop, onSend]);
+  }, [isSending, inputMessage, isDisabled, onSend]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -250,7 +241,7 @@ const ChatInput = ({
           <Loader2 className="h-5 w-5 text-amber-500 animate-spin flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-amber-700">Transcription en cours…</p>
-            <p className="text-xs text-amber-500 mt-0.5">Le texte va apparaître dans le chat</p>
+            <p className="text-xs text-amber-500 mt-0.5">Le texte va apparaître ci-dessous pour relecture</p>
           </div>
         </div>
       </div>
@@ -275,7 +266,7 @@ const ChatInput = ({
                 {formatTimer(recordingSeconds)}
               </span>
             </div>
-            <p className="text-xs text-red-400 mt-0.5">Parle, puis appuie sur Envoyer</p>
+            <p className="text-xs text-red-400 mt-0.5">Appuie sur Stop quand tu as fini</p>
           </div>
 
           {/* Cancel button */}
@@ -288,14 +279,14 @@ const ChatInput = ({
             <X className="h-4 w-4 text-red-500" />
           </button>
 
-          {/* Send button */}
+          {/* Stop button (transcribe → review in textarea) */}
           <button
-            onClick={handleSend}
-            disabled={isSending}
-            className="h-9 w-9 rounded-full bg-[#03BB26] hover:bg-green-600 text-white flex items-center justify-center shadow-sm hover:shadow-md hover:shadow-green-200 active:scale-95 transition-all flex-shrink-0"
-            aria-label="Envoyer"
+            onClick={handleStopRecording}
+            className="h-9 w-9 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-sm hover:shadow-md active:scale-95 transition-all flex-shrink-0"
+            title="Terminer et transcrire"
+            aria-label="Terminer et transcrire"
           >
-            <Send className="h-4 w-4" />
+            <Square className="h-3.5 w-3.5 fill-current" />
           </button>
         </div>
 
