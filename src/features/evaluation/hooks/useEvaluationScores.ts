@@ -6,13 +6,16 @@ interface EvaluationResult {
   note_finale: number;
   actions_reussies: (string | { action: string; extrait: string })[];
   actions_manquees: string[];
+  actions_partielles?: (string | { action: string; extrait?: string })[];
   communication_details: Record<string, number>;
   feedback: string;
 }
 
 export const useEvaluationScores = (result: EvaluationResult) => {
   return useMemo(() => {
-    const maxClinicalScore = result.actions_reussies.length + result.actions_manquees.length;
+    const maxClinicalScore = result.actions_reussies.length
+      + (result.actions_partielles?.length || 0)
+      + result.actions_manquees.length;
     const maxCommunicationScore = Object.keys(result.communication_details).length;
 
     const getScoreColor = (score: number, max: number) => {
@@ -30,21 +33,20 @@ export const useEvaluationScores = (result: EvaluationResult) => {
     };
 
     const getPerformanceLevel = (finalScore: number) => {
-      if (finalScore >= 12) { // Covers "Excellent" and "Bien"
+      if (finalScore >= 12) {
         return {
           level: finalScore >= 15 ? "Excellent" : "Bien",
           color: "text-primary",
           badgeClasses: "bg-primary/10 text-primary border-primary/20"
         };
       }
-      if (finalScore >= 10) { // Satisfaisant
+      if (finalScore >= 10) {
         return {
           level: "Satisfaisant",
           color: "text-warning",
           badgeClasses: "bg-warning/10 text-warning border-warning/20"
         };
       }
-      // À améliorer
       return {
         level: "À améliorer",
         color: "text-destructive",
