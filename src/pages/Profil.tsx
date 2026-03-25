@@ -260,11 +260,11 @@ const Profil = () => {
   const freePlanLimitations = [
     "Stations en illimité",
     "+15 nouvelles stations / semaine",
-    "Classement hebdomadaire dynamique",
-    "Classement par station",
+    "Mode ECOS Blanc",
     "Évaluation IA complète",
+    "Rappels de cours personnalisés",
+    "Classement hebdomadaire dynamique",
     "Accès prioritaire au support",
-    "Accès anticipé aux nouvelles fonctionnalités",
   ];
 
   const display = profile || cachedProfile || {};
