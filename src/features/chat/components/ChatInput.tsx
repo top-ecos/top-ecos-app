@@ -126,7 +126,7 @@ const ChatInput = ({
 
   const { isSupported, isListening, error, engine, start, stop } = useSpeechRecognition({
     lang: "fr-FR",
-    maxDurationMs: 60_000,
+    maxDurationMs: 120_000,
     onResult: handleSpeechResult,
     transcribeFn: transcribeAudio,
   });
