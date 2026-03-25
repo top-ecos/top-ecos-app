@@ -31,6 +31,8 @@ interface EvaluationResultsProps {
   stationId: string;
   ednItemNumber?: string | null;
   ednItemName?: string | null;
+  /** When provided (e.g. from history), skip the "latest row" query and target this row directly */
+  mockResultId?: string;
 }
 
 /* ──────────────────────────── Helpers ─────────────────────────── */
@@ -63,6 +65,7 @@ const EvaluationResults = ({
   stationId,
   ednItemNumber,
   ednItemName,
+  mockResultId: mockResultIdProp,
 }: EvaluationResultsProps) => {
   const { user } = useAuth();
 
@@ -112,9 +115,15 @@ const EvaluationResults = ({
   }, [user?.id, stationId]);
 
   /* ── mock_results row id (for DB updates) ── */
-  const [mockResultId, setMockResultId] = useState<string | null>(null);
+  const [mockResultId, setMockResultId] = useState<string | null>(mockResultIdProp ?? null);
 
   useEffect(() => {
+    // If the caller already knows the exact row id (e.g. history page), skip the query
+    if (mockResultIdProp) {
+      setMockResultId(mockResultIdProp);
+      return;
+    }
+
     let isMounted = true;
     const fetchId = async () => {
       if (!user?.id || !stationId) return;
@@ -134,7 +143,7 @@ const EvaluationResults = ({
     };
     fetchId();
     return () => { isMounted = false; };
-  }, [user?.id, stationId]);
+  }, [user?.id, stationId, mockResultIdProp]);
 
   /* ── Save status indicator ── */
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
