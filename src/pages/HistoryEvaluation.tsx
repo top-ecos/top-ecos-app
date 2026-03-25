@@ -22,6 +22,7 @@ type MockResultRow = {
   score_phase_2: number | null;
   evaluation_details: {
     actions_reussies?: EvaluationResult["actions_reussies"];
+    actions_partielles?: EvaluationResult["actions_partielles"];
     actions_manquees?: EvaluationResult["actions_manquees"];
     communication_details?: EvaluationResult["communication_details"];
   } | null;
@@ -167,6 +168,7 @@ const HistoryEvaluationPage = () => {
           score_communication: row.score_communication ?? 0,
           note_finale: row.score ?? 0,
           actions_reussies: row.evaluation_details?.actions_reussies ?? [],
+          actions_partielles: row.evaluation_details?.actions_partielles ?? [],
           actions_manquees: row.evaluation_details?.actions_manquees ?? [],
           communication_details: row.evaluation_details?.communication_details ?? {},
           feedback: row.feedback ?? "",
