@@ -474,6 +474,7 @@ const Ranking = () => {
                   onStart={handleStartSimulation}
                   getBadgeStyles={getBadgeStyles}
                   fallbackFromAll={sddList}
+                  hideInfoButton
                 />
               </div>
             ) : (
@@ -544,6 +545,7 @@ const Ranking = () => {
                   onStart={handleStartSimulation}
                   getBadgeStyles={getBadgeStyles}
                   fallbackFromAll={sddList}
+                  hideInfoButton
                 />
               </div>
             )}
