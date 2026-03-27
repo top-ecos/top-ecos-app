@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { User, X, ZoomIn, Info, FileText } from "lucide-react";
+import { User, X, ZoomIn, Info, FileText, Lightbulb } from "lucide-react";
 import ChatHeader from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
@@ -99,7 +99,7 @@ const InteractiveDocumentViewer: React.FC<InteractiveDocumentViewerProps> = ({ d
       )}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col h-full">
         <div>
-          <h3 className="font-semibold text-gray-800">{documentName}</h3>
+          <h3 className="text-sm font-semibold text-gray-800">{documentName}</h3>
           <p className="text-xs text-gray-400 mt-0.5">Appuyer pour zoomer</p>
         </div>
 
@@ -524,22 +524,37 @@ const ChatInterface = ({
 
 
 // --- PATIENT HEADER (desktop only) ---
+// Themed by station type: PS = blue, PSS = purple, Document = pink
 const PatientHeader = ({ caseData, onShowConsignes }: { caseData: CaseData; onShowConsignes: () => void }) => {
   const displayName = StationTypeManager.getCharacterDisplayName(caseData);
   const isDocs = StationTypeManager.isDocumentStation(caseData);
   const isPSS = StationTypeManager.isSimulatedProfessional(caseData);
 
+  // ── Theme per station type ──
+  const theme = isDocs
+    ? { bg: 'rgba(255, 75, 214, 0.10)', iconBg: 'bg-[#FF4BD6]/15', iconColor: 'text-[#FF4BD6]' }
+    : isPSS
+      ? { bg: 'rgba(145, 5, 248, 0.10)', iconBg: 'bg-[#9105F8]/15', iconColor: 'text-[#9105F8]' }
+      : { bg: 'rgba(66, 153, 246, 0.10)', iconBg: 'bg-[#4299F6]/15', iconColor: 'text-[#4299F6]' };
+
   return (
-    <div className="p-4 border-b border-gray-100 bg-gray-50/50 rounded-t-2xl flex-shrink-0">
+    <div
+      className="p-4 border-b border-gray-100 rounded-t-2xl flex-shrink-0"
+      style={{ backgroundColor: theme.bg }}
+    >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <div className="w-9 h-9 bg-gray-300 rounded-full flex items-center justify-center">
-            <User className="h-4.5 w-4.5 text-white" />
+          <div className={`w-10 h-10 ${theme.iconBg} rounded-full flex items-center justify-center`}>
+            {isDocs ? (
+              <Lightbulb className={`h-5 w-5 ${theme.iconColor}`} />
+            ) : (
+              <User className={`h-5 w-5 ${theme.iconColor}`} />
+            )}
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900 text-sm">{displayName}</h3>
+            <h3 className="font-semibold text-gray-900 text-base">{displayName}</h3>
             {!isDocs && !isPSS && (
-              <p className="text-xs text-gray-500">Patient(e) standardisé(e)</p>
+              <p className="text-sm text-gray-500">Patient(e) standardisé(e)</p>
             )}
           </div>
         </div>
