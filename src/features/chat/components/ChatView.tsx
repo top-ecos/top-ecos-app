@@ -562,7 +562,7 @@ const PatientHeader = ({ caseData, onShowConsignes }: { caseData: CaseData; onSh
           <button
             type="button"
             onClick={onShowConsignes}
-            className="inline-flex items-center gap-1.5 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full px-3 py-1 text-xs font-medium transition-colors"
+            className="inline-flex items-center gap-1.5 text-gray-700 bg-white hover:bg-gray-50 border border-gray-200 rounded-full px-3 py-1 text-xs font-medium transition-colors"
             aria-label="Afficher les consignes de la station"
           >
             <Info className="h-3.5 w-3.5" />
