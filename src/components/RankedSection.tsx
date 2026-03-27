@@ -35,6 +35,8 @@ export interface RankedSectionProps {
   getBadgeStyles: (type: string, content: string) => React.CSSProperties;
   // Optional list of all SDDs from parent; used as fallback for visibility
   fallbackFromAll?: SDD[];
+  // Hide the "Comment ça marche ?" button (e.g. when already shown in parent page header)
+  hideInfoButton?: boolean;
 }
 
 const mapRowToSdd = (row: SDDRow): RankedSdd => {
@@ -73,6 +75,7 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
   onStart,
   getBadgeStyles,
   fallbackFromAll,
+  hideInfoButton = false,
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,25 +152,27 @@ export const RankedSection: React.FC<RankedSectionProps> = ({
           <h2 className="text-2xl font-semibold text-text">Stations classées de la semaine</h2>
           <p className="text-subtext">Obtiens la meilleure moyenne sur ces 3 stations pour concourir au top 10 hebdomadaire</p>
         </div>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button
-              variant="secondary"
-              className="border border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
-            >
-              <Info size={16} className="mr-2" />
-              Comment ça marche ?
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="bg-white">
-            <UIDialogHeader>
-              <DialogTitle>Comment ça marche ?</DialogTitle>
-              <DialogDescription>
-                Les stations classées te permettent de comparer tes performances à celles des autres utilisateurs de top ECOS. Toutes les semaines, 3 nouvelles stations classées sont ajoutées à top ECOS. Fais-toi évaluer par l'IA top ECOS sur ces 3 nouvelles stations et vois comment tu te situes par rapport aux autres étudiants. Le classement est réinitialisé toutes les semaines.
-              </DialogDescription>
-            </UIDialogHeader>
-          </DialogContent>
-        </Dialog>
+        {!hideInfoButton && (
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button
+                variant="secondary"
+                className="border border-blue-300 text-blue-600 bg-white hover:bg-blue-50"
+              >
+                <Info size={16} className="mr-2" />
+                Comment ça marche ?
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-white">
+              <UIDialogHeader>
+                <DialogTitle>Comment ça marche ?</DialogTitle>
+                <DialogDescription>
+                  Les stations classées te permettent de comparer tes performances à celles des autres utilisateurs de top ECOS. Toutes les semaines, 3 nouvelles stations classées sont ajoutées à top ECOS. Fais-toi évaluer par l'IA top ECOS sur ces 3 nouvelles stations et vois comment tu te situes par rapport aux autres étudiants. Le classement est réinitialisé toutes les semaines.
+                </DialogDescription>
+              </UIDialogHeader>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       <Card className="bg-surface border-border">
