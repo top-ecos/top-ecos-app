@@ -210,12 +210,12 @@ const ChatHeader = ({
           </div>
         </div>
 
-        {/* ── Desktop header (unchanged) ── */}
-        <div className="hidden lg:flex items-center justify-between py-4">
-          {/* Left: title block */}
-          <div className="min-w-0">
+        {/* ── Desktop header ── */}
+        <div className="hidden lg:flex items-center justify-between py-4 gap-4">
+          {/* Left: title block — takes remaining space, truncates gracefully */}
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-lg sm:text-2xl font-bold text-[#222223] truncate max-w-[60vw] sm:max-w-none">
+              <h1 className="text-lg xl:text-2xl font-bold text-[#222223] truncate">
                 {caseData.sdd_titre || 'Station'}
               </h1>
               {examMode && examProgress && (
@@ -226,7 +226,7 @@ const ChatHeader = ({
               {!examMode && caseData?.consignes_etudiant && !['PS', 'PSS', 'Sèche'].includes(StationTypeManager.getType(caseData)) && (
                 <button
                   onClick={onShowConsignes}
-                  className="inline-flex items-center gap-1 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full px-2 py-0.5 text-xs"
+                  className="flex-shrink-0 inline-flex items-center gap-1 text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-full px-2 py-0.5 text-xs"
                   aria-label="Afficher les consignes de la station"
                   title="Consignes de la station"
                 >
@@ -240,8 +240,8 @@ const ChatHeader = ({
             </p>
           </div>
 
-          {/* Desktop controls */}
-          <div className="flex items-center space-x-3">
+          {/* Desktop controls — never shrink, never wrap */}
+          <div className="flex items-center space-x-3 flex-shrink-0">
             {/* Timer */}
             <div className="flex flex-col items-center space-y-1" aria-label="Minuteur de la station">
               <div className={`flex items-center justify-center border-2 rounded-full px-4 py-1 font-semibold text-lg w-[120px] ${timerClasses.wrapper}`}>
@@ -258,7 +258,7 @@ const ChatHeader = ({
               <button
                 onClick={onTogglePause}
                 disabled={isTimeUp}
-                className="flex items-center space-x-2 px-4 py-2 border-2 border-[#F39C12] text-[#F39C12] rounded-full font-medium text-sm hover:bg-orange-50 disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 border-2 border-[#F39C12] text-[#F39C12] rounded-full font-medium text-sm hover:bg-orange-50 disabled:opacity-50 whitespace-nowrap"
                 aria-label={isPaused ? 'Reprendre la station' : 'Mettre la station en pause'}
               >
                 {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
@@ -272,7 +272,7 @@ const ChatHeader = ({
                 onClick={() => {
                   if (window.confirm('Réinitialiser la station ? Votre progression locale sera effacée.')) onReset();
                 }}
-                className="flex items-center space-x-2 px-4 py-2 border-2 border-[#4299F6] text-[#4299F6] rounded-full font-medium text-sm hover:bg-blue-50"
+                className="flex items-center space-x-2 px-4 py-2 border-2 border-[#4299F6] text-[#4299F6] rounded-full font-medium text-sm hover:bg-blue-50 whitespace-nowrap"
                 aria-label="Réinitialiser la station"
               >
                 <RotateCcw className="h-4 w-4" />
@@ -286,7 +286,7 @@ const ChatHeader = ({
                 onClick={() => {
                   if (window.confirm('Quitter sans évaluer ? Votre progression locale sera effacée.')) onBack();
                 }}
-                className="flex items-center space-x-2 px-4 py-2 border-2 border-[#E74C3C] text-[#E74C3C] rounded-full font-medium text-sm hover:bg-red-50"
+                className="flex items-center space-x-2 px-4 py-2 border-2 border-[#E74C3C] text-[#E74C3C] rounded-full font-medium text-sm hover:bg-red-50 whitespace-nowrap"
                 aria-label="Quitter sans évaluer"
               >
                 <X className="h-4 w-4" />
@@ -298,7 +298,7 @@ const ChatHeader = ({
             <button
               onClick={onEvaluate}
               disabled={!canEvaluate}
-              className="flex items-center space-x-2 px-4 py-2 border-2 border-[#2ECC71] text-[#2ECC71] rounded-full font-medium text-sm hover:bg-green-50 disabled:opacity-50"
+              className="flex items-center space-x-2 px-4 py-2 border-2 border-[#2ECC71] text-[#2ECC71] rounded-full font-medium text-sm hover:bg-green-50 disabled:opacity-50 whitespace-nowrap"
               aria-label={isEvaluating ? 'Évaluation en cours' : evaluateLabel}
             >
               <BarChart3 className="h-4 w-4" />
