@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent } from '@/shared/components/ui/card-premium';
 import { Button } from '@/shared/components/ui/button-premium';
-// no skeletons here; use a simple waiting spinner instead
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/shared/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Info, Medal, Lock } from 'lucide-react';
@@ -12,7 +11,14 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { useProfile } from '@/shared/hooks/useProfile';
 import { useNavigate } from 'react-router-dom';
-import { isUserPremium } from '@/shared/lib/premium';
+import { isUserPremium, isSddPremium } from '@/shared/lib/premium';
+// ── New imports for RankedSection integration ──
+import RankedSection from '@/components/RankedSection';
+import { useSDD, SDD } from '@/shared/hooks/useSDD';
+import { useStationProgress } from '@/shared/hooks/useStationProgress';
+import { startSimulation } from '@/features/simulation/lib/simulation';
+import { deriveTypeLabel } from '@/features/station/lib/station';
+import { toast } from '@/shared/components/ui/sonner';
 
 type RankingRow = {
   user_id: string;
@@ -104,20 +110,73 @@ const TopCard = ({
 };
 
 const getWeekStart = (d = new Date()) => {
-  // Monday as first day of week (FR)
-  const day = d.getDay(); // 0..6, 0 = Sunday
-  const diff = (day === 0 ? -6 : 1 - day); // how many days to Monday
+  const day = d.getDay();
+  const diff = (day === 0 ? -6 : 1 - day);
   const monday = new Date(d);
   monday.setDate(d.getDate() + diff);
   monday.setHours(0, 0, 0, 0);
   return monday;
 };
 
+// ── Badge styles (same as Home) ──
+const getBadgeStyles = (type: string, content: string) => {
+  const styles: { color: string; backgroundColor: string; border?: string } = {
+    color: '#707070',
+    backgroundColor: '#70707033',
+  };
+
+  switch (type) {
+    case 'status':
+      if (content === 'Terminée') {
+        styles.color = '#2ECC71';
+        styles.backgroundColor = '#2ECC7133';
+      } else if (content === 'À faire') {
+        styles.color = '#707070';
+        styles.backgroundColor = '#70707033';
+      }
+      break;
+    case 'document':
+      styles.color = '#FF4BD6';
+      styles.backgroundColor = '#FF4BD633';
+      break;
+    case 'type':
+      if (content === 'Patient Standardisé' || content === 'PS') {
+        styles.color = '#4299F6';
+        styles.backgroundColor = '#4299F633';
+      } else if (content === 'Patient Semi-Standardisé' || content === 'PSS') {
+        styles.color = '#9105F8';
+        styles.backgroundColor = '#9105F833';
+      } else if (content === 'Documents' || content === 'Document(s)') {
+        styles.color = '#FF4BD6';
+        styles.backgroundColor = '#FF4BD633';
+      } else if (content === 'Station sèche' || content === 'Sèche') {
+        styles.color = '#934F00';
+        styles.backgroundColor = '#934F0033';
+      } else if (content === 'Procédure') {
+        styles.color = '#28A745';
+        styles.backgroundColor = '#28A74533';
+      }
+      break;
+    case 'edn':
+    case 'time':
+      styles.color = '#707070';
+      styles.backgroundColor = '#FFFFFF';
+      styles.border = '1px solid #E0E0E0';
+      break;
+    case 'specialty':
+      styles.color = '#F39C12';
+      styles.backgroundColor = '#F39C1233';
+      break;
+    default:
+      break;
+  }
+
+  return styles;
+};
+
 const Ranking = () => {
-  // Premium gating (align with Home logic)
-  const { profile, loading: profileLoading, hasPremiumAccess } = useProfile();
+  const { profile, loading: profileLoading, hasPremiumAccess, updateTokens } = useProfile();
   
-  // Cache-first premium check for instant UI response
   const [cachedHasPremium, setCachedHasPremium] = useState<boolean | null>(() => {
     const cache = typeof StorageManager?.getProfileCache === 'function'
       ? StorageManager.getProfileCache()
@@ -125,10 +184,8 @@ const Ranking = () => {
     return cache ? isUserPremium(cache.data) : null;
   });
   
-  // Use hook's hasPremiumAccess when profile is loaded, otherwise use cached value
   const isPremiumEffective = hasPremiumAccess ?? cachedHasPremium ?? false;
   
-  // Update cache when profile changes
   useEffect(() => {
     if (!profile) return;
     setCachedHasPremium(hasPremiumAccess);
@@ -143,9 +200,63 @@ const Ranking = () => {
   const [myRank, setMyRank] = useState<number | null>(null);
   const navigate = useNavigate();
 
+  // ── New hooks for RankedSection ──
+  const { sddList } = useSDD();
+  const { isStationCompleted, updateLastAttempt } = useStationProgress() as any;
+  const [startingStationId, setStartingStationId] = useState<string | null>(null);
+  const hasTokens = !profile || profile.tokens > 0;
+
+  // ── Start simulation handler (same logic as Home) ──
+  const handleStartSimulation = async (sdd: SDD) => {
+    if (!isPremiumEffective && isSddPremium(sdd)) {
+      toast.error('Cette station est réservée aux membres Premium.');
+      navigate('/pricing');
+      return;
+    }
+    if (!isPremiumEffective && !hasTokens) {
+      toast.error("Tu n'as plus de sessions gratuites cette semaine. Abonne-toi à top ECOS Premium pour continuer l'entraînement.");
+      navigate('/pricing');
+      return;
+    }
+    if (!user) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    setStartingStationId(sdd.id);
+
+    try {
+      await startSimulation(sdd, {
+        updateTokens,
+        updateLastAttempt,
+        sanitizeMessage: false,
+      });
+      navigate('/simulation');
+    } catch (error: unknown) {
+      console.error('Error starting station:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erreur lors du démarrage de la simulation. Veuillez réessayer.';
+      toast.error(errorMessage);
+      if (profile && user) {
+        try {
+          const { data: refreshedProfile, error: refreshError } = await supabase
+            .from('profiles')
+            .select('tokens')
+            .eq('user_id', user.id)
+            .single();
+          if (!refreshError && refreshedProfile) {
+            updateTokens(refreshedProfile.tokens);
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing profile:', refreshError);
+        }
+      }
+    } finally {
+      setStartingStationId(null);
+    }
+  };
+
   useEffect(() => {
     if (!isPremiumEffective) {
-      // Skip fetching when user is not premium
       setLoading(false);
       return;
     }
@@ -164,8 +275,6 @@ const Ranking = () => {
         setRows((data ?? []) as RankingRow[]);
         setError(null);
 
-        // Fetch current user's row (to display personal placement if not in top 10)
-        // Fetch total ranked users (>=3 completed ranked tests)
         try {
           const { count: total, error: countErr } = await supabase
             .from('user_ranking')
@@ -190,13 +299,11 @@ const Ranking = () => {
             .eq('user_id', user.id)
             .maybeSingle();
           if (myErr) {
-            // Non-blocking for overall page
             console.warn('Could not fetch current user ranking:', myErr.message);
             setMyRow(null);
             setMyRank(null);
           } else {
             setMyRow((mine as any) || null);
-            // Compute user's rank only if eligible (>=3) and has score
             if ((mine?.completed_ranked_tests ?? 0) >= 3 && mine?.average_score != null) {
               try {
                 const { count: ahead, error: aheadErr } = await supabase
@@ -255,8 +362,7 @@ const Ranking = () => {
     }
   }, []);
 
-  // Premium gate: show instantly for known free users (from cache or profile),
-  // even if profile is still loading to avoid any spinner flash.
+  // Premium gate: non-premium users see the lock screen
   const premiumKnown = profile !== null || cachedHasPremium !== null;
   if (premiumKnown && !isPremiumEffective) {
     return (
@@ -273,7 +379,7 @@ const Ranking = () => {
                     Accès au classement réservé aux abonnés
                   </h1>
                   <p className="text-subtext">
-                    Passe à top ECOS Premium pour comparer tes performances à celles des autres étudiants. Chaque semaine, 3 nouvelles stations classées t’attendent parmi les 10 nouvelles ajoutées à la plateforme.
+                    Passe à top ECOS Premium pour comparer tes performances à celles des autres étudiants. Chaque semaine, 3 nouvelles stations classées t'attendent parmi les 10 nouvelles ajoutées à la plateforme.
                   </p>
                   <div className="pt-2">
                     <Button
@@ -327,7 +433,7 @@ const Ranking = () => {
               </Dialog>
             </div>
 
-            {/* Content */}
+            {/* Leaderboard Content */}
             {loading ? (
               <div className="flex items-center justify-center py-16">
                 <div className="text-center">
@@ -343,84 +449,102 @@ const Ranking = () => {
                 </CardContent>
               </Card>
             ) : user?.id && myRow && (myRow.completed_ranked_tests ?? 0) < 3 ? (
-              <Card className="bg-white border-border">
-                <CardContent className="p-8 text-center space-y-4">
-                  <div className="flex items-center justify-center mb-2">
-                    <Info className="h-10 w-10 text-blue-600" />
-                  </div>
-                  <h2 className="text-2xl md:text-3xl font-semibold text-text">
-                    Termine les 3 stations classées
-                  </h2>
-                  <p className="text-subtext">
-                    Tu as complété {myRow.completed_ranked_tests ?? 0} station{(myRow.completed_ranked_tests ?? 0) > 1 ? 's' : ''} sur 3. Complète les {3 - (myRow.completed_ranked_tests ?? 0)} station{(3 - (myRow.completed_ranked_tests ?? 0)) > 1 ? 's' : ''} restante{(3 - (myRow.completed_ranked_tests ?? 0)) > 1 ? 's' : ''} pour voir ton classement et te comparer aux autres étudiants.
-                  </p>
-                  <div className="pt-2">
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      className="w-full md:w-auto md:px-6 md:min-w-[260px] text-white bg-[var(--accent)] hover:bg-[var(--accent-hover)] border border-[var(--accent)]"
-                      onClick={() => navigate('/')}
-                    >
-                      Aller aux stations classées
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-4 animate-fade-in-slide-up">
-                {/* Top 1/2/3 */}
-                {top3.map((row, idx) => (
-                  <TopCard
-                    key={row.user_id}
-                    rank={idx + 1}
-                    pseudo={row.pseudo || 'Utilisateur'}
-                    emoji={row.emoji}
-                    score={row.average_score}
-                    highlight={user?.id === row.user_id}
-                    color={idx === 0 ? 'gold' : idx === 1 ? 'silver' : 'bronze'}
-                  />
-                ))}
-
-                {/* 4-10 */}
+              /* ── State: < 3 stations done ── */
+              <div className="space-y-8">
                 <Card className="bg-white border-border">
-                  <CardContent className="p-0">
-                    {others.length === 0 ? (
-                      <div className="p-8 text-center text-subtext">Pas encore d'autres participants cette semaine.</div>
-                    ) : (
-                      <div className="divide-y divide-gray-200">
-                        {others.map((row, i) => {
-                          const rank = i + 4;
-                          return (
-                            <div key={row.user_id} className="flex items-center gap-4 px-6 py-4">
-                              <div className="w-8 text-[var(--text)] font-semibold">{rank}.</div>
-                              <div className="flex-1 min-w-0 text-center text-[var(--text)]">
-                                <span className={`truncate inline-block max-w-full ${user?.id === row.user_id ? 'text-green-600 font-bold' : ''}`}>{row.pseudo || 'Utilisateur'}</span>
-                              </div>
-                              <div className="w-16 text-right font-semibold text-[var(--text)]">
-                                {formatScore(row.average_score)}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                  <CardContent className="p-8 text-center space-y-4">
+                    <div className="flex items-center justify-center mb-2">
+                      <Info className="h-10 w-10 text-blue-600" />
+                    </div>
+                    <h2 className="text-2xl md:text-3xl font-semibold text-text">
+                      Termine les 3 stations classées
+                    </h2>
+                    <p className="text-subtext">
+                      Tu as complété {myRow.completed_ranked_tests ?? 0} station{(myRow.completed_ranked_tests ?? 0) > 1 ? 's' : ''} sur 3. Complète les {3 - (myRow.completed_ranked_tests ?? 0)} station{(3 - (myRow.completed_ranked_tests ?? 0)) > 1 ? 's' : ''} restante{(3 - (myRow.completed_ranked_tests ?? 0)) > 1 ? 's' : ''} pour voir ton classement et te comparer aux autres étudiants.
+                    </p>
                   </CardContent>
                 </Card>
 
-                {/* Personal ranking (if not in top 10) */}
-                {user?.id && !rows.some(r => r.user_id === user.id) && myRow && (myRow.completed_ranked_tests ?? 0) >= 3 && (
+                {/* Ranked stations so user can launch them directly */}
+                <RankedSection
+                  isStationCompleted={isStationCompleted}
+                  isPremiumEffective={isPremiumEffective}
+                  hasTokens={hasTokens}
+                  startingStationId={startingStationId}
+                  onStart={handleStartSimulation}
+                  getBadgeStyles={getBadgeStyles}
+                  fallbackFromAll={sddList}
+                />
+              </div>
+            ) : (
+              /* ── State: 3 stations done → full leaderboard + ranked stations ── */
+              <div className="space-y-8">
+                <div className="space-y-4 animate-fade-in-slide-up">
+                  {/* Top 1/2/3 */}
+                  {top3.map((row, idx) => (
+                    <TopCard
+                      key={row.user_id}
+                      rank={idx + 1}
+                      pseudo={row.pseudo || 'Utilisateur'}
+                      emoji={row.emoji}
+                      score={row.average_score}
+                      highlight={user?.id === row.user_id}
+                      color={idx === 0 ? 'gold' : idx === 1 ? 'silver' : 'bronze'}
+                    />
+                  ))}
+
+                  {/* 4-10 */}
                   <Card className="bg-white border-border">
-                    <CardContent className="px-6 py-4">
-                      <div className="flex items-center">
-                        <div className="flex-1 text-left font-semibold text-[var(--text)]">Ton classement</div>
-                        <div className="flex-1 text-center text-subtext">{topPercent != null ? `top ${topPercent}%` : '—'}</div>
-                        <div className="flex-1 text-right font-semibold text-[var(--text)]">
-                          {formatScore(myRow?.average_score ?? null)}
+                    <CardContent className="p-0">
+                      {others.length === 0 ? (
+                        <div className="p-8 text-center text-subtext">Pas encore d'autres participants cette semaine.</div>
+                      ) : (
+                        <div className="divide-y divide-gray-200">
+                          {others.map((row, i) => {
+                            const rank = i + 4;
+                            return (
+                              <div key={row.user_id} className="flex items-center gap-4 px-6 py-4">
+                                <div className="w-8 text-[var(--text)] font-semibold">{rank}.</div>
+                                <div className="flex-1 min-w-0 text-center text-[var(--text)]">
+                                  <span className={`truncate inline-block max-w-full ${user?.id === row.user_id ? 'text-green-600 font-bold' : ''}`}>{row.pseudo || 'Utilisateur'}</span>
+                                </div>
+                                <div className="w-16 text-right font-semibold text-[var(--text)]">
+                                  {formatScore(row.average_score)}
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      </div>
+                      )}
                     </CardContent>
                   </Card>
-                )}
+
+                  {/* Personal ranking (if not in top 10) */}
+                  {user?.id && !rows.some(r => r.user_id === user.id) && myRow && (myRow.completed_ranked_tests ?? 0) >= 3 && (
+                    <Card className="bg-white border-border">
+                      <CardContent className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="flex-1 text-left font-semibold text-[var(--text)]">Ton classement</div>
+                          <div className="flex-1 text-center text-subtext">{topPercent != null ? `top ${topPercent}%` : '—'}</div>
+                          <div className="flex-1 text-right font-semibold text-[var(--text)]">
+                            {formatScore(myRow?.average_score ?? null)}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                {/* ── Ranked stations of the week ── */}
+                <RankedSection
+                  isStationCompleted={isStationCompleted}
+                  isPremiumEffective={isPremiumEffective}
+                  hasTokens={hasTokens}
+                  startingStationId={startingStationId}
+                  onStart={handleStartSimulation}
+                  getBadgeStyles={getBadgeStyles}
+                  fallbackFromAll={sddList}
+                />
               </div>
             )}
           </div>
