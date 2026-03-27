@@ -204,7 +204,7 @@ const Pricing = () => {
                                 <div className="min-h-[140px] md:min-h-[154px] flex flex-col justify-start">
                                     <h3 className={`text-2xl font-semibold ${plan.title === 'Gratuit' ? 'text-[#707070]' : (plan.isHighlighted ? 'text-[var(--accent)]' : 'text-text')}`}>{plan.title}</h3>
                                     <div className="flex items-baseline gap-1 my-4">
-                                        <p className={`text-5xl font-extrabold ${plan.title === 'Gratuit' ? 'text-[#707070]' : (plan.isHighlighted ? 'text-[var(--accent)]' : 'text-text')}`}>{plan.price}</p>
+                                        <p className={`text-5xl font-bold ${plan.title === 'Gratuit' ? 'text-[#707070]' : (plan.isHighlighted ? 'text-[var(--accent)]' : 'text-text')}`}>{plan.price}</p>
                                         {plan.priceSuffix && (
                                             <p className={`${plan.title === 'Gratuit' ? 'text-[#707070]' : (plan.isHighlighted ? 'text-[var(--accent)]' : 'text-gray-500')}`}>{plan.priceSuffix}</p>
                                         )}
