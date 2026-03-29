@@ -12,46 +12,112 @@ import { Alert, AlertDescription } from '@/shared/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { StorageManager } from '@/shared/lib/storage';
 
-// Map common Supabase auth error messages to French user-friendly text
+// ─────────────────────────────────────────────────────────
+// Error translation — every known error gets a unique French message
+// ─────────────────────────────────────────────────────────
 const translateAuthError = (message?: string | null): string => {
   const m = (message || '').toLowerCase();
   if (!m) return 'Une erreur est survenue. Réessaie.';
 
-  // Credentials / login
-  if (m.includes('invalid login credentials')) return 'Identifiants de connexion invalides.';
-  if (m.includes('email not confirmed')) return 'Veuillez confirmer votre adresse e‑mail avant de vous connecter.';
-  if (m.includes('invalid email or password')) return 'Email ou mot de passe incorrect.';
+  // ── Sign in ──
+  if (m.includes('invalid login credentials'))
+    return 'Email ou mot de passe incorrect.';
+  if (m.includes('email not confirmed'))
+    return 'Ton adresse e‑mail n\'a pas encore été confirmée.';
+  if (m.includes('invalid email or password'))
+    return 'Email ou mot de passe incorrect.';
 
-  // Sign up / existing user
-  if (m.includes('user already registered') || m.includes('user already exists')) {
+  // ── Sign up — duplicates ──
+  if (m.includes('user already registered') || m.includes('user already exists'))
     return 'Un compte existe déjà avec cet e‑mail.';
-  }
+  if (m.includes('phone already used'))
+    return 'Ce numéro de téléphone est déjà associé à un compte.';
+  if (m.includes('phone or email already used'))
+    return 'Ce numéro de téléphone ou cet e‑mail est déjà utilisé.';
 
-  // Validation
-  if (m.includes('invalid email')) return 'Adresse e‑mail invalide.';
-  if (m.includes('password should be at least 6 characters') || m.includes('password too short')) {
+  // ── Sign up — validation ──
+  if (m.includes('invalid email'))
+    return 'Adresse e‑mail invalide.';
+  if (m.includes('password should be at least 6 characters') || m.includes('password too short'))
     return 'Le mot de passe doit contenir au moins 6 caractères.';
-  }
-  if (m.includes('email or password is required')) return 'Email et mot de passe sont requis.';
+  if (m.includes('email or password is required'))
+    return 'Email et mot de passe sont requis.';
+  if (m.includes('missing phone number'))
+    return 'Le numéro de téléphone est requis.';
 
-  // Rate limiting / throttling
-  if (m.includes('rate limit') || m.includes('too many requests')) {
-    return 'Trop de tentatives. Réessaie plus tard.';
-  }
+  // ── SMS / verify-code ──
+  if (m.includes('code incorrect'))
+    return 'Code incorrect. Vérifie le SMS et réessaie.';
+  if (m.includes('invalid code'))
+    return 'Le code doit contenir exactement 6 chiffres.';
+  if (m.includes('unable to create user'))
+    return 'Impossible de créer le compte. Réessaie.';
 
-  // Session / token
-  if (m.includes('refresh token not found') || m.includes('session expired')) {
+  // ── Server / config ──
+  if (m.includes('missing server configuration'))
+    return 'Erreur de configuration du serveur. Contacte le support.';
+  if (m.includes('invalid content type'))
+    return 'Erreur technique (format de requête). Contacte le support.';
+
+  // ── Rate limiting ──
+  if (m.includes('rate limit') || m.includes('too many requests'))
+    return 'Trop de tentatives. Réessaie dans quelques minutes.';
+
+  // ── Session ──
+  if (m.includes('refresh token not found') || m.includes('session expired'))
     return 'Session expirée. Merci de te reconnecter.';
-  }
 
-  // Network
-  if (m.includes('failed to fetch') || m.includes('network')) {
-    return 'Problème réseau. Vérifie ta connexion internet.';
-  }
+  // ── Network ──
+  if (m.includes('failed to fetch') || m.includes('network'))
+    return 'Problème de connexion internet. Vérifie ton réseau.';
 
-  // Default fallback
-  return 'Une erreur est survenue. ' + (message || 'Réessaie.');
+  // ── Catch-all for the generic Edge Function error ──
+  if (m.includes('edge function returned a non-2xx'))
+    return 'Le serveur a rencontré un problème. Réessaie.';
+
+  // ── Default ──
+  return 'Une erreur est survenue. Réessaie.';
 };
+
+// ─────────────────────────────────────────────────────────
+// Helper to call Edge Functions and extract the REAL error
+// supabase.functions.invoke returns a generic message on non-2xx;
+// the actual error is buried in error.context (the raw Response).
+// ─────────────────────────────────────────────────────────
+async function invokeEdge(
+  functionName: string,
+  body: Record<string, unknown>,
+): Promise<Record<string, unknown>> {
+  const { data, error } = await supabase.functions.invoke(functionName, { body });
+
+  if (error) {
+    let realMessage = error.message;
+
+    // Try to read the actual JSON body from the Response stored in error.context
+    try {
+      if ('context' in error && error.context instanceof Response) {
+        const parsed = await error.context.json();
+        if (parsed?.error) realMessage = parsed.error;
+      }
+    } catch {
+      // context wasn't readable — fall through
+    }
+
+    // Some versions of supabase-js still populate data alongside error
+    if (data?.error && typeof data.error === 'string') {
+      realMessage = data.error;
+    }
+
+    throw new Error(realMessage);
+  }
+
+  // Edge function returned 2xx but with { ok: false, error: "..." }
+  if (data && data.ok === false && data.error) {
+    throw new Error(data.error);
+  }
+
+  return data;
+}
 
 const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -226,19 +292,15 @@ const Auth = () => {
     const fullPhone = phoneNumber ? `${countryCode}${phoneNumber}` : undefined;
 
     try {
-      // Step 1: Ask server to send code (fake SMS)
-      const { error: fnError } = await supabase.functions.invoke('send-sms', {
-        body: { phone: fullPhone },
-      });
-      if (fnError) throw fnError;
+      await invokeEdge('send-sms', { phone: fullPhone });
 
       // Save details for later and move to code step
       setPendingAuth({ mode: 'signup', email, password, firstName, lastName, phone: fullPhone });
       setSignupStep('code');
       setSuccess('Un code à 6 chiffres vient d\'être envoyé par SMS.');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : null;
-      setError(translateAuthError(errorMessage) || 'Impossible d\'envoyer le code');
+      const msg = err instanceof Error ? err.message : null;
+      setError(translateAuthError(msg));
     } finally {
       setIsLoading(false);
     }
@@ -248,14 +310,11 @@ const Auth = () => {
     if (!pendingAuth) return;
     try {
       setResendLoading(true);
-      const { error } = await supabase.functions.invoke('send-sms', {
-        body: { phone: pendingAuth.phone },
-      });
-      if (error) throw error;
+      await invokeEdge('send-sms', { phone: pendingAuth.phone });
       setSuccess('Code renvoyé.');
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : null;
-      setError(translateAuthError(errorMessage) || 'Impossible de renvoyer le code');
+      const msg = err instanceof Error ? err.message : null;
+      setError(translateAuthError(msg));
     } finally {
       setResendLoading(false);
     }
@@ -269,12 +328,15 @@ const Auth = () => {
     setSuccess(null);
 
     try {
-      // Verify the 6-digit code and create the user server-side (service key)
       const { email, password, firstName, lastName, phone } = pendingAuth;
-      const { data, error: verifyError } = await supabase.functions.invoke('verify-code', {
-        body: { code: verificationCode, email, password, firstName, lastName, phone },
+      await invokeEdge('verify-code', {
+        code: verificationCode,
+        email,
+        password,
+        firstName,
+        lastName,
+        phone,
       });
-      if (verifyError) throw verifyError;
 
       // Then sign in with the provided credentials
       const { error: signInError } = await signIn(email, password);
@@ -282,8 +344,8 @@ const Auth = () => {
 
       navigate(from, { replace: true });
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : null;
-      setError(translateAuthError(errorMessage) || 'Code invalide');
+      const msg = err instanceof Error ? err.message : null;
+      setError(translateAuthError(msg));
     } finally {
       setIsLoading(false);
     }
@@ -667,14 +729,14 @@ const Auth = () => {
                 )}
 
                 <div className="text-xs text-muted-foreground text-center">
-                  En t’inscrivant, tu acceptes nos{' '}
+                  En t'inscrivant, tu acceptes nos{' '}
                   <a
                     href="https://top-ecos.com/legal"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="underline"
                   >
-                    conditions d’utilisation et notre politique de confidentialité
+                    conditions d'utilisation et notre politique de confidentialité
                   </a>{'.'}
                 </div>
               </TabsContent>
