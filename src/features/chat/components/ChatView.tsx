@@ -1,10 +1,23 @@
 import React, { useState, useRef, useEffect } from "react";
-import { User, X, ZoomIn, Info, FileText, Lightbulb } from "lucide-react";
+import { User, X, ZoomIn, Info, FileText, Lightbulb, File, ExternalLink } from "lucide-react";
 import ChatHeader from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import { extractDocuments } from "@/shared/lib/documents";
 import { StationTypeManager } from "@/features/station/lib/stationTypeManager";
+
+/**
+ * Detect iOS / iPadOS where iframe PDF rendering is not supported.
+ * Chrome on iPad also uses WebKit (Apple policy), so it's affected too.
+ */
+const getIsIOSorIPadOS = (): boolean => {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  if (/iPhone|iPod/.test(ua)) return true;
+  if (/iPad/.test(ua)) return true;
+  if (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1) return true;
+  return false;
+};
 
 // --- DOCUMENT MODAL (full-screen zoom) ---
 interface DocumentModalProps {
@@ -74,6 +87,11 @@ interface InteractiveDocumentViewerProps {
 const InteractiveDocumentViewer: React.FC<InteractiveDocumentViewerProps> = ({ documents }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+
+  useEffect(() => {
+    setIsIOS(getIsIOSorIPadOS());
+  }, []);
 
   if (!documents || documents.length === 0) {
     return (
@@ -88,6 +106,12 @@ const InteractiveDocumentViewer: React.FC<InteractiveDocumentViewerProps> = ({ d
   const selectedType = getFileType(selectedDocument.url);
   const pdfPreviewUrl = `${selectedDocument.url}#toolbar=0&view=Fit`;
 
+  /** Open document in native viewer (for iOS PDF fallback) */
+  const handleOpenDocument = () => {
+    const w = window.open(selectedDocument.url, '_blank', 'noopener,noreferrer');
+    if (w) w.opener = null;
+  };
+
   return (
     <>
       {isModalOpen && (
@@ -100,21 +124,38 @@ const InteractiveDocumentViewer: React.FC<InteractiveDocumentViewerProps> = ({ d
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-col h-full">
         <div>
           <h3 className="text-sm font-semibold text-gray-800">{documentName}</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Appuyer pour zoomer</p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {isIOS && selectedType === 'pdf' ? 'Appuyer pour ouvrir le PDF' : 'Appuyer pour zoomer'}
+          </p>
         </div>
 
         <div
           className="my-3 flex-1 flex items-center justify-center relative cursor-pointer group overflow-hidden"
-          onClick={() => setIsModalOpen(true)}
+          onClick={isIOS && selectedType === 'pdf' ? handleOpenDocument : () => setIsModalOpen(true)}
         >
           {selectedType === 'pdf' ? (
-            <div className="w-full h-full min-h-[12rem]">
-              <iframe
-                src={pdfPreviewUrl}
-                title={`${documentName} (aperçu)`}
-                className="w-full h-full rounded-lg border border-gray-100 bg-white"
-              />
-            </div>
+            isIOS ? (
+              /* ── iOS / iPadOS fallback: WebKit can't render PDFs in iframes ── */
+              <div className="w-full h-full min-h-[12rem] flex flex-col items-center justify-center gap-3 bg-gray-50 rounded-lg border border-gray-100">
+                <File className="h-10 w-10 text-red-400" />
+                <div className="text-center px-4">
+                  <p className="text-gray-800 font-semibold text-sm">{documentName}</p>
+                  <p className="text-gray-500 text-xs mt-1">PDF — Appuie pour ouvrir</p>
+                </div>
+                <div className="inline-flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium text-gray-700 shadow-sm">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Ouvrir le PDF
+                </div>
+              </div>
+            ) : (
+              <div className="w-full h-full min-h-[12rem]">
+                <iframe
+                  src={pdfPreviewUrl}
+                  title={`${documentName} (aperçu)`}
+                  className="w-full h-full rounded-lg border border-gray-100 bg-white"
+                />
+              </div>
+            )
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <img
@@ -124,11 +165,14 @@ const InteractiveDocumentViewer: React.FC<InteractiveDocumentViewerProps> = ({ d
               />
             </div>
           )}
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center rounded-lg">
-            <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 rounded-full p-2.5 shadow">
-              <ZoomIn className="h-5 w-5 text-gray-800" />
+          {/* Hover overlay — hide on iOS PDF since we open externally */}
+          {!(isIOS && selectedType === 'pdf') && (
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 flex items-center justify-center rounded-lg">
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 rounded-full p-2.5 shadow">
+                <ZoomIn className="h-5 w-5 text-gray-800" />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {documents.length > 1 && (
