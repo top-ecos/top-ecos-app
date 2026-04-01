@@ -42,6 +42,9 @@ function getBadgeStyles(type: string, content: string) {
     } else if (content === 'Patient Semi-Standardisé' || content === 'PSS') {
       styles.color = '#9105F8';
       styles.backgroundColor = '#9105F833';
+    } else if (content === 'Documents' || content === 'Document(s)') {
+      styles.color = '#FF4BD6';
+      styles.backgroundColor = '#FF4BD633';
     } else if (content === 'Station sèche' || content === 'Sèche') {
       styles.color = '#934F00';
       styles.backgroundColor = '#934F0033';
