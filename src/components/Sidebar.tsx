@@ -46,7 +46,6 @@ const navigation: SidebarItem[] = [
     icon: <ClipboardCheck size={22} strokeWidth={1.5} />,
     label: 'ECOS blanc',
     href: '/ecos-blanc',
-    badge: 'beta',
   },
   {
     id: 'dashboard',
