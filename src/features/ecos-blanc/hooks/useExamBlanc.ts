@@ -116,9 +116,11 @@ export const useExamBlanc = () => {
     const idx = currentIndexRef.current;
     const caseData = sddsRef.current[idx];
     const startTime = sessionStartRef.current;
+    const isLast = idx === TOTAL_STATIONS - 1;
 
-    // Move to cooldown immediately so student sees the transition
-    setPhase('cooldown');
+    // Last station → skip cooldown, go directly to results
+    // Stations 1-4 → show cooldown screen
+    setPhase(isLast ? 'results' : 'cooldown');
 
     if (!user || !caseData) return;
 
@@ -129,7 +131,7 @@ export const useExamBlanc = () => {
       return next;
     });
 
-    // Fire background evaluation — runs during cooldown
+    // Fire background evaluation — runs during cooldown (or on results screen for last station)
     evaluateStation({
       caseData,
       messages,
