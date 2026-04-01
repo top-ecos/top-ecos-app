@@ -53,9 +53,7 @@ const CooldownScreen: React.FC<CooldownScreenProps> = ({
           </div>
 
           <p className="text-sm text-gray-500 mb-6">
-            {isLastStation
-              ? 'Dernière station terminée ! Patientez pour voir vos résultats.'
-              : 'Préparez-vous pour la station suivante.'}
+            Préparez-vous pour la station suivante.
           </p>
 
           {/* Skip button */}
@@ -64,7 +62,7 @@ const CooldownScreen: React.FC<CooldownScreenProps> = ({
             className="w-full max-w-xs h-12 rounded-xl bg-[#03BB26] text-white font-semibold text-sm
               hover:bg-[#02a522] active:scale-[0.98] transition-all shadow-md shadow-[#03BB26]/20"
           >
-            {isLastStation ? 'Voir mes résultats' : 'Station suivante'}
+            Station suivante
           </button>
         </div>
 
@@ -83,9 +81,8 @@ const CooldownScreen: React.FC<CooldownScreenProps> = ({
             />
           </div>
           <div className="flex justify-between text-xs text-gray-400 mt-2">
-            <span>Début</span>
             <span>{Math.round(progressPercent)}%</span>
-            <span>Fin</span>
+            <span>{stationsCompleted}/{totalStations}</span>
           </div>
         </div>
 
