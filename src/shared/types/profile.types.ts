@@ -15,6 +15,7 @@ export interface Profile {
   emoji: string | null;
   trial_ends_at?: string | null;
   access_expires_at?: string | null;
+  paywall_cta_clicked?: boolean;
   created_at: string;
   updated_at: string;
 }
