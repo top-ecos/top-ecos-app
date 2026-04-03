@@ -16,6 +16,7 @@ interface ReplayViewProps {
   onBackToHome: () => void;
   backLabel?: string;
   hideResetStation?: boolean;
+  showBackButton?: boolean;
 }
 
 const ReplayView = ({ 
@@ -27,6 +28,7 @@ const ReplayView = ({
   onBackToHome,
   backLabel = "Retour",
   hideResetStation = false,
+  showBackButton = true,
 }: ReplayViewProps) => {
   const conversationMessages = messages.filter(m => m.role !== 'system');
   const [showConsignes, setShowConsignes] = useState(false);
@@ -42,15 +44,17 @@ const ReplayView = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="min-w-0 flex items-center gap-3">
-              <button
-                onClick={onBack}
-                className="h-10 w-10 sm:h-auto sm:w-auto inline-flex items-center justify-center sm:justify-start rounded-full border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition px-0 sm:px-4 py-0 sm:py-2"
-                aria-label={backLabel}
-                title={backLabel}
-              >
-                <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">{backLabel}</span>
-              </button>
+              {showBackButton && (
+                <button
+                  onClick={onBack}
+                  className="h-10 w-10 sm:h-auto sm:w-auto inline-flex items-center justify-center sm:justify-start rounded-full border-2 border-gray-200 text-gray-700 hover:bg-gray-50 transition px-0 sm:px-4 py-0 sm:py-2"
+                  aria-label={backLabel}
+                  title={backLabel}
+                >
+                  <ChevronLeft className="h-5 w-5 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">{backLabel}</span>
+                </button>
+              )}
               <h1 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">Replay pédagogique</h1>
             </div>
 
