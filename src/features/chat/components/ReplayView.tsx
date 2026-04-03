@@ -128,10 +128,8 @@ const ReplayView = ({
           
           {/* Document panel — desktop only */}
           {hasDocuments && (
-            <div className="hidden lg:block lg:w-2/5 flex-shrink-0">
-              <div className="sticky top-[88px]" style={{ maxHeight: 'calc(100vh - 120px)' }}>
-                <InteractiveDocumentViewer documents={documents} />
-              </div>
+            <div className="hidden lg:block lg:w-2/5 flex-shrink-0 h-[calc(100vh-120px)]">
+              <InteractiveDocumentViewer documents={documents} />
             </div>
           )}
 
