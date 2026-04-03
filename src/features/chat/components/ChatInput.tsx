@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useLayoutEffect } from "react";
 import { Mic, Send, Loader2, X, Square } from "lucide-react";
 import { useSpeechRecognition } from "../hooks/useSpeechRecognition";
 import { toast } from "@/shared/components/ui/sonner";
@@ -79,12 +79,26 @@ const ChatInput = ({
   const unmountedRef = useRef(false);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Cursor position preservation ──
+  // Stores the cursor position set by the user during manual edits.
+  // null means "don't override" (e.g. after dictation, let the auto-focus-to-end behavior work).
+  const cursorPosRef = useRef<number | null>(null);
+
   // Flag to ignore the next transcription result (used by Cancel)
   const ignoreNextResultRef = useRef(false);
 
   useEffect(() => {
     return () => { unmountedRef.current = true; };
   }, []);
+
+  // ── Restore cursor position after React re-renders the textarea value ──
+  useLayoutEffect(() => {
+    if (cursorPosRef.current !== null && textareaRef.current) {
+      const pos = cursorPosRef.current;
+      textareaRef.current.setSelectionRange(pos, pos);
+      cursorPosRef.current = null;
+    }
+  }, [inputMessage]);
 
   // ── Stable onResult callback ──
   const handleSpeechResult = useCallback(
@@ -112,6 +126,7 @@ const ChatInput = ({
       if (isFinal) {
         finalDictationRef.current = `${prevFinal}${prevFinal ? " " : ""}${text}`.trim();
         const merged = `${base} ${finalDictationRef.current}`.trim();
+        // Don't preserve cursor for dictation results — auto-focus-to-end handles it
         onInputChange(merged);
       } else {
         const preview = `${base} ${prevFinal} ${text}`.trim();
@@ -174,7 +189,7 @@ const ChatInput = ({
   useEffect(() => {
     if (!isListening && !isTranscribing && inputMessage.trim() && textareaRef.current) {
       textareaRef.current.focus();
-      // Place cursor at end
+      // Place cursor at end (only after dictation, not during manual edits)
       const len = inputMessage.length;
       textareaRef.current.setSelectionRange(len, len);
       // Auto-resize textarea to fit content
@@ -205,6 +220,16 @@ const ChatInput = ({
     ignoreNextResultRef.current = true;
     stop();
   }, [stop]);
+
+  // ── Handle textarea change with cursor preservation ──
+  const handleTextareaChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      // Save cursor position BEFORE React re-renders
+      cursorPosRef.current = e.target.selectionStart;
+      onInputChange(e.target.value);
+    },
+    [onInputChange],
+  );
 
   // ── Send message (keyboard or button) ──
   const handleSend = useCallback(async () => {
@@ -314,7 +339,7 @@ const ChatInput = ({
         <textarea
           ref={textareaRef}
           value={inputMessage}
-          onChange={(e) => onInputChange(e.target.value)}
+          onChange={handleTextareaChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isDisabled}
