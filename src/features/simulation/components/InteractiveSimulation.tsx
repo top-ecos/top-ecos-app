@@ -201,6 +201,7 @@ const InteractiveSimulation = React.memo(({
         caseData={caseData}
         messages={replayMessages}
         onBack={handleBackToChat}
+        showBackButton={false}
         onShowEvaluation={handleShowEvaluation}
         onResetStation={handleResetStation}
         onBackToHome={onBack}
