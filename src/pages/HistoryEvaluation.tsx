@@ -45,7 +45,6 @@ type SddLiteRow = {
   lien_document_externe_3: string | null;
   lien_document_externe_4: string | null;
   lien_document_externe_5: string | null;
-  liens_documents_externes: string | null;
 };
 
 const isMessageRole = (role: unknown): role is MessageRole =>
@@ -147,7 +146,7 @@ const HistoryEvaluationPage = () => {
 
         const { data: sddRow, error: sddError } = await supabase
           .from("sdds")
-          .select("official_id, sdd_titre, consignes_etudiant, include_documents, sdd_type, item_edn, item_edn_name, lien_document_externe_1, lien_document_externe_2, lien_document_externe_3, lien_document_externe_4, lien_document_externe_5, liens_documents_externes")
+          .select("official_id, sdd_titre, consignes_etudiant, include_documents, sdd_type, item_edn, item_edn_name, lien_document_externe_1, lien_document_externe_2, lien_document_externe_3, lien_document_externe_4, lien_document_externe_5")
           .eq("sdd_id", stationUuid)
           .maybeSingle();
 
@@ -173,7 +172,6 @@ const HistoryEvaluationPage = () => {
           lien_document_externe_3: stationMeta?.lien_document_externe_3 ?? null,
           lien_document_externe_4: stationMeta?.lien_document_externe_4 ?? null,
           lien_document_externe_5: stationMeta?.lien_document_externe_5 ?? null,
-          liens_documents_externes: stationMeta?.liens_documents_externes ?? null,
         };
 
         const builtEvaluation: EvaluationResult = {
