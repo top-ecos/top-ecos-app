@@ -186,10 +186,23 @@ const ChatInput = ({
   }, [error]);
 
   // ── Auto-focus textarea after transcription lands ──
+  // Track previous dictation state to detect the transition from recording/transcribing → idle
+  const wasDictatingRef = useRef(false);
+
   useEffect(() => {
-    if (!isListening && !isTranscribing && inputMessage.trim() && textareaRef.current) {
+    const isDictating = isListening || isTranscribing;
+
+    if (isDictating) {
+      // Mark that we were in dictation mode
+      wasDictatingRef.current = true;
+      return;
+    }
+
+    // Only run the auto-focus when transitioning OUT of dictation
+    if (wasDictatingRef.current && inputMessage.trim() && textareaRef.current) {
+      wasDictatingRef.current = false;
       textareaRef.current.focus();
-      // Place cursor at end (only after dictation, not during manual edits)
+      // Place cursor at end of transcribed text
       const len = inputMessage.length;
       textareaRef.current.setSelectionRange(len, len);
       // Auto-resize textarea to fit content
