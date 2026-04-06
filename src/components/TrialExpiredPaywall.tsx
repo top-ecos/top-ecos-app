@@ -75,22 +75,9 @@ const TrialExpiredPaywall: React.FC<TrialExpiredPaywallProps> = ({ onDismissed }
           </h2>
 
           {/* Paragraph 1 — Features */}
-          <p className="text-sm text-gray-500 leading-relaxed mb-4">
+          <p className="text-sm text-gray-500 leading-relaxed mb-6">
             Profite d'un accès illimité à +250 stations, du mode ECOS blanc, du classement hebdomadaire et l'évaluation IA complète en t'abonnant à top ECOS Premium.
           </p>
-
-          {/* Paragraph 2 — Promo code */}
-          <div className="bg-gray-50 rounded-xl px-4 py-3 mb-6 text-sm text-gray-800 leading-relaxed">
-            <span className="italic">
-              Psst... jusqu'à ce dimanche 5 avril 23:59, le pass Saison 2026 est à 20€ avec le code
-            </span>
-            {' '}
-            <span className="not-italic font-semibold text-[#03BB26] bg-[#03BB26]/10 px-1.5 py-0.5 rounded">
-              SAISON20
-            </span>
-            {' '}
-            <span className="not-italic">😉</span>
-          </div>
 
           {/* CTA */}
           <button
