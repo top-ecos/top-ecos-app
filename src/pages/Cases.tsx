@@ -231,7 +231,7 @@ const Cases = () => {
                 Bibliothèque des Stations
                 {!sddLoading && sddList.length > 0 && (
                    <span className="text-subtext font-medium text-xl ml-2">
-                    ({sddList.filter(s => (s as any).status === 'live' && s?.ranked !== true).length + 1})
+                    ({sddList.filter(s => s?.ranked !== true).length + 1})
                   </span>
                   )}
               </h1>
