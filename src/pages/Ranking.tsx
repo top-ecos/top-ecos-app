@@ -408,7 +408,7 @@ const Ranking = () => {
             {/* Header */}
             <div className="flex items-start justify-between mb-6 md:mb-8">
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-text tracking-tight mb-2">Classement</h1>
+                <h1 className="text-3xl md:text-4xl font-bold text-text tracking-tight mb-2">Top 10 de la semaine</h1>
                 <p className="text-subtext">{weekLabel}</p>
               </div>
 
