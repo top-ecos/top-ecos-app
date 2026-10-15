@@ -131,7 +131,7 @@ export const RecommendedSddSection: React.FC<RecommendedSddSectionProps> = ({
                             size="sm"
                             className="w-full mt-4 bg-white text-text border border-[var(--border)] hover:bg-[var(--accent)] hover:text-white hover:border-[var(--accent)] min-h-[44px]"
                           >
-                            je m'abonne
+                            Je m'abonne
                           </Button>
                         </Link>
                       ) : (
