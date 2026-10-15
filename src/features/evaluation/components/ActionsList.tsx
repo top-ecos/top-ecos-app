@@ -183,7 +183,7 @@ export const ActionsList = ({
   onReclassify,
 }: ActionsListProps) => {
   const { profile } = useProfile();
-  const premium = isUserPremium(profile);
+  const premium = isUserPremium(profile) || true; // Grille complète visible par tous (fermeture top ECOS)
 
   const hasPartialActions = actions_partielles.length > 0;
   const hasMissedActions = actions_manquees.length > 0;
